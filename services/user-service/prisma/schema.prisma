@@ -1,0 +1,133 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+// NOTES 
+// In Prisma, an enum is a way to define a set of named constant values for a field in your database schema. It’s particularly useful when you want a column to have only a specific set of allowed values, like status indicators, categories, roles, etc. This helps enforce data integrity and makes your code more readable.
+// @ is used to denote field level and model level  attributes in Prisma schema. Field level attributes provide additional metadata or constraints for individual fields, while model level attributes apply to the entire model.
+
+
+// --- Enums for strict data types ---
+
+enum GameResult {
+  WIN
+  LOSS
+  DRAW
+}
+
+enum PlayerColor {
+  WHITE
+  BLACK
+}
+
+enum TimeControl {
+  BLITZ
+  RAPID
+  CLASSICAL
+  BULLET
+}
+
+
+
+// --- Main User Model ---
+
+model User {
+  // 1. Primary Key: Auto-generated UUID
+  id String @id @default(uuid())
+
+  // 2. Auth Sync: The ID from *separate* Auth database.
+  authUserId String @unique @map("auth_user_id")
+
+  // 3. Public Profile Data:
+  username    String    @unique 
+  displayName String    @map("display_name") 
+  photoUrl    String?   @map("photo_url")
+  country     String?   // e.g., "US", "IN" (ISO 3166-1 alpha-2)
+  status      String    @default("offline") 
+  dateJoined  DateTime  @default(now()) @map("date_joined")
+  preferences Json?     // For storing theme, piece style, etc.
+
+  // 4. Relational Data:
+  ratings     Rating? // 1-1
+  statistics  Statistics? // 1-1
+  gameHistory Game[] // 1-many
+
+  @@map("users") 
+}
+
+
+
+model Rating {
+  id        String @id @default(uuid())
+  blitz     Int    @default(1200)
+  rapid     Int    @default(1200)
+  classical Int    @default(1600)
+
+//foreign key to User
+  userId String @unique @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("ratings")
+}
+
+
+
+model Statistics {
+  id         String @id @default(uuid())
+  totalGames Int    @default(0) @map("total_games")
+  wins       Int    @default(0)
+  losses     Int    @default(0)
+  draws      Int    @default(0)
+
+  //  further expansion like rating progress, streaks etc.
+
+//foreign key to User
+  userId String @unique @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("statistics")
+}
+
+// --- One-to-Many Model for Lightweight Game History ---
+
+model Game {
+
+  id String @id @default(uuid())
+
+  // 2. Link to the user in this database (many-to-one)
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 3.  refer this when creating the game service
+  // This stores the ID from the Game Service's database.
+  gameServiceId String @map("game_service_id")
+
+  // 4. denormalization of opponent data at time of game
+  opponentAuthId   String @map("opponent_auth_id") 
+  opponentUsername String @map("opponent_username") 
+  opponentRating   Int    @map("opponent_rating") 
+
+  // 5. Lightweight game summary details
+  userColor   PlayerColor 
+  result      GameResult  
+  timeControl TimeControl @map("time_control")
+  playedAt    DateTime    @default(now()) @map("played_at")
+
+  @@map("game_history")
+}
+
+
+// tables are normalized to reduce redundancy and improve data integrity.

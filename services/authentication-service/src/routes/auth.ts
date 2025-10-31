@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { generateJwtForUser, login, register, verify } from "../controllers/authController";
+import { completeGoogleRegistration, generateJwtForUser, handleGoogleRedirect, verify } from "../controllers/authController";
 import jwt from "jsonwebtoken";
 
 const passport  = require("passport");
@@ -17,26 +17,22 @@ passport.use(
       scope: ['openid', 'email', 'profile'],
     },
     verify
-    // The verify function signature changes for OIDC
   )
 );
 
 
 const router = Router();
-router.post("/register", register);
-router.post("/login", login);
+// router.post("/register", register);
+// router.post("/login", login);
 router.get('/login/federated/google', passport.authenticate('google'));
 router.get('/oauth2/redirect/google', passport.authenticate('google', {
   failureRedirect: '/login',
   session: false 
-}),generateJwtForUser
+}),handleGoogleRedirect
 );
+// final registration step after first time login after getting username from front-end
+router.post('/register/complete',completeGoogleRegistration);
 
-// router.post('/logout', function(req, res, next) {
-//   req.logout(function(err) {
-//     if (err) { return next(err); }
-//     res.redirect('/');
-//   });
-// });
+// maybe add logout route later 
 
 export default router;
