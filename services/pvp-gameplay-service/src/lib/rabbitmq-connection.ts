@@ -1,4 +1,4 @@
-import amqp, {Channel, ChannelModel} from 'amqplib';
+import amqp, {type Channel, type ChannelModel} from 'amqplib';
 
 export let amqp_connection: ChannelModel | null = null;
 export let amqp_channel: Channel | null = null;
