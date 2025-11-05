@@ -6,6 +6,7 @@ import {redisClient} from "../lib/redis-client.js";
 import {v4 as uuidv4 } from 'uuid';
 
 const GAME_START_QUEUE = process.env.GAME_START_QUEUE || 'game_start_queue';
+const NOTIFICATION_QUEUE = process.env.NOTIFICATION_QUEUE || 'notification_queue';
 
 const startGameWorker = async () => {
     try {
@@ -22,7 +23,9 @@ const startGameWorker = async () => {
 
             const chessGame = new Chess();
 
-            await initializeGameState(gameData, chessGame);
+            const gameState = await initializeGameState(gameData, chessGame);
+
+            await publishGameStart(gameState);
 
             // Here you would add the logic to actually start the game,
             // e.g., initializing game state, notifying players, etc.
@@ -80,6 +83,27 @@ const initializeGameState = async (gameData: any, chessGame: Chess) => {
     console.log(gameState);
 
     await redisClient.hSet(`game:match:${gameID}`, redisGameObject);
+
+    return gameState;
+}
+
+const publishGameStart = async (gameState: GameState) => {
+    const player1Notification = {
+        gameID: gameState.gameID,
+        userID: gameState.blackPlayer,
+        color: "black",
+        event: "ready"
+    };
+
+    const player2Notification = {
+        gameID: gameState.gameID,
+        userID: gameState.whitePlayer,
+        color: "white",
+        event: "ready"
+    };
+
+    await redisClient.publish(NOTIFICATION_QUEUE, JSON.stringify(player1Notification));
+    await redisClient.publish(NOTIFICATION_QUEUE, JSON.stringify(player2Notification));
 }
 
 export default startGameWorker;
