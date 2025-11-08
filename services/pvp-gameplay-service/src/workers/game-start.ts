@@ -60,11 +60,12 @@ const initializeGameState = async (gameData: any, chessGame: Chess) => {
         fen: initialFEN,
         whitePlayer: player1,
         blackPlayer: player2,
-        blackClock: 300,
-        whiteClock: 300,
+        blackClock: 300000, // 5 minutes in milliseconds
+        whiteClock: 300000,
         increment: timeIncrement,
         status: "ready",
-        moves: JSON.stringify([])
+        moves: JSON.stringify([]),
+        lastMoveTimestamp: Date.now()
     }
 
     //redis safe object
@@ -77,7 +78,8 @@ const initializeGameState = async (gameData: any, chessGame: Chess) => {
         whiteClock: gameState.whiteClock,
         increment: gameState.increment, // Ensure timeIncrement is a number
         status: gameState.status,       // This will work if status is a string
-        moves: gameState.moves
+        moves: gameState.moves,
+        lastMoveTimestamp: gameState.lastMoveTimestamp || Date.now()
     };
 
     console.log(gameState);
