@@ -1,12 +1,15 @@
 import {Request, Response} from 'express';
 import prisma from '../db/db';
-import { Prisma,Rating } from '../generated/prisma';
+import { Prisma,Rating } from '@prisma/client';
 import { gameResultSchema, GameResultInput } from './validationSchemas';
 // import { Rating } from '../generated/prisma/browser';
 
 
 export const getUserByAuthUserId = async (req: Request, res: Response) => {
   const {authUserId} = req.params;
+    if (!authUserId || typeof authUserId !== 'string') {
+  return res.status(400).json({ error: "Username is required" });
+}
   const user = await prisma.user.findUnique({
     where: {authUserId: authUserId},
   });
@@ -77,10 +80,15 @@ export const getAllUsers = async (req: Request, res: Response) => {
 // confirm correctness of this controller later
 export const getLeaderboard = async (req: Request, res: Response) => {
     const {timeControl} = req.params;
+      if (!timeControl || typeof timeControl !== 'string') {
+  return res.status(400).json({ error: "timeControl is required" });
+}
     try {
         const leaderboard = await prisma.user.findMany({
             orderBy: {
-                timeControl: 'desc'
+                ratings:{
+                    [timeControl]: 'desc'
+                }
                 },
             take: 100,
         });
@@ -92,11 +100,24 @@ export const getLeaderboard = async (req: Request, res: Response) => {
 }
 
 export const getUserById = async (req: Request, res: Response) => {
-    const username = req.params.userId;
+    console.log("starting");
+    const { username } = req.params;
+    console.log(username);
+    if (!username || typeof username !== 'string') {
+  return res.status(400).json({ error: "Username is required" });
+}
     try {
         const user = await prisma.user.findUnique({
-            where: {username: username},
-        });
+  where: { username },
+  include: {
+    ratings: true,
+    statistics: true,
+    gameHistory: {
+      orderBy: { playedAt: "desc" }, // optional, get recent games first
+      take: 10, // optional, limit number of games returned
+    },
+  },
+});
         if (!user) {
             return res.status(404).json({message: 'User not found'});
         }
@@ -109,6 +130,9 @@ export const getUserById = async (req: Request, res: Response) => {
 
 export const updateUser = async (req: Request, res: Response) => {
    const username = req.params.userId;
+     if (!username || typeof username !== 'string') {
+  return res.status(400).json({ error: "Username is required" });
+}
     try {
         const user = await prisma.user.findUnique({
             where: {username: username},
@@ -142,6 +166,9 @@ export const updateUser = async (req: Request, res: Response) => {
 
 export const deleteUser = async(req: Request, res: Response) =>{
     const {userId} = req.params;
+      if (!userId || typeof userId !== 'string') {
+  return res.status(400).json({ error: "Username is required" });
+}
     try {
         await prisma.user.delete({
             where: {username: userId},
@@ -155,6 +182,9 @@ export const deleteUser = async(req: Request, res: Response) =>{
 
 export const getUserGames = async (req: Request, res: Response) => {
     const username = req.params.userId;
+      if (!username || typeof username !== 'string') {
+  return res.status(400).json({ error: "Username is required" });
+}
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
     const skip = (page - 1) * limit;

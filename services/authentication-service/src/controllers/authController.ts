@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import pool from "../db/db";
 import axios from "axios";
@@ -28,6 +27,7 @@ export const verify = async (
   done: (err: any, user?: any) => void
 ) => {
   console.log(profile);
+  console.log(29);
   const providerUserId = profile.id;
   const userEmail = profile.emails && profile.emails[0]?.value
   const userName = profile.displayName;
@@ -38,7 +38,7 @@ export const verify = async (
 
   try {
     // 1. Check if this Google account is already linked
-      console.log("Checking for existing credentials...");
+    console.log("Checking for existing credentials...");
     const credentialResult = await pool.query(
       'SELECT * FROM auth_credentials WHERE provider = $1 AND provider_user_id = $2',
       [issuer, providerUserId]
@@ -57,61 +57,74 @@ export const verify = async (
       }
       console.log("Existing user found, logging in.");
       let userProfile;
-      try{
-          const response = await axios.get(process.env.USER_SERVICE_URL + `/api/internal/users/by-auth-id/${providerUserId}`);
-          userProfile = response.data;
-          if(userProfile){
-            return done(null, userProfile);
+      try {
+        const response = await axios.get(process.env.USER_SERVICE_URL + `/api/internal/users/by-auth-id/${providerUserId}`);
+        userProfile = response.data;
+        if (userProfile) {
+          return done(null, userProfile);
+        }
       }
-    }
-      catch(err : any){
+      catch (err: any) {
         if (axios.isAxiosError(err) && err.response?.status === 404) {
-        // User profile does NOT exist - This is okay, it means they are new
-        userProfile = null;
-      } else {
-        // Different error (User service down? Network issue?)
-        throw err; // Let the outer catch handle it
+          // User profile does NOT exist - This is okay, it means they are new
+          userProfile = null;
+        } else {
+          // Different error (User service down? Network issue?)
+          throw err; // Let the outer catch handle it
+        }
       }
-      }
-      if(userProfile){
+      if (userProfile) {
         return done(null, userProfile);
       }
-    
-    //  account not linked yet
-    const existingUserByEmailResult = await pool.query(
-      'SELECT id, email, name FROM users WHERE email = $1',
-      [userEmail]
-    );
-    // a  transaction has started here that's why we use pool.connect
-    const client = await pool.connect();
-    try {
-      if (existingUserByEmailResult.rows.length > 0) {
-        // --- SCENARIO 2: EXISTING USER, NEW GOOGLE LINK ---
-        const existingUser: User = existingUserByEmailResult.rows[0];
-        await client.query(
-          'INSERT INTO auth_credentials (user_id, provider, provider_user_id) VALUES ($1, $2, $3)',
-          [existingUser.id, issuer, providerUserId]
-        );
-        console.log('Linked Google account to existing user.');
-        return done(null, existingUser);
-      } else {
-        // --- SCENARIO 3: NEW USER ---
-        const partialUser  = {
-          isNew: true, // Indicate that this is a new user
-          authUserId: providerUserId, // The Google ID
-          provider: issuer, // eg. google
-          displayName: userName,
-          email: userEmail,
-        };
-        return done(null, partialUser);
-      }
-    } catch (err) {
-      await client.query('ROLLBACK');
-      throw err;
-    } finally {
-      client.release();
+
     }
-  }
+    else{
+      //  account not linked yet
+      const existingUserByEmailResult = await pool.query(
+        'SELECT id, email, name FROM users WHERE email = $1',
+        [userEmail]
+      );
+      // a  transaction has started here that's why we use pool.connect
+      const client = await pool.connect();
+      try {
+        if (existingUserByEmailResult.rows.length > 0) {
+          // --- SCENARIO 2: EXISTING USER, NEW GOOGLE LINK ---
+          const existingUser: User = existingUserByEmailResult.rows[0];
+
+          const linkCheck = await client.query(
+            'SELECT * FROM auth_credentials WHERE user_id = $1 AND provider = $2',
+            [existingUser.id, issuer]
+          );
+
+          if (linkCheck.rows.length > 0) {
+            return done(new Error('User already has a Google account linked.'), null);
+          }
+
+          await client.query(
+            'INSERT INTO auth_credentials (user_id, provider, provider_user_id) VALUES ($1, $2, $3)',
+            [existingUser.id, issuer, providerUserId]
+          );
+          console.log('Linked Google account to existing user.');
+          return done(null, existingUser);
+        } else {
+          // --- SCENARIO 3: NEW USER ---
+          const partialUser = {
+            isNew: true, // Indicate that this is a new user
+            authUserId: providerUserId, // The Google ID
+            provider: issuer, // eg. google
+            displayName: userName,
+            email: userEmail,
+          };
+          console.log("✅ Scenario 3: New user detected");
+          return done(null, partialUser);
+        }
+      } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+      } finally {
+        client.release();
+      }
+    }
 
   } catch (err) {
     return done(err);
@@ -134,49 +147,51 @@ export const handleGoogleRedirect = (req: Request, res: Response) => {
       process.env.JWT_SECRET!,
       { expiresIn: "15m" } // short as it's sensitive info
     );
+
+
     console.log("New user registration initiated.");
     // Send a response telling the frontend to ask for a username.
     // The frontend will see this and redirect to /create-profile.
-    res.json({
-      status: "pending_registration",
-      tempToken: tempToken,
-    });
+    const redirectUrl = `http://localhost:5173/oauth-callback?status=pending_registration&tempToken=${tempToken}`;
+    res.redirect(redirectUrl);
   } else {
     // --- SCENARIO A: User EXISTS ---
     // User is already in req.user, just call your existing JWT generator
     console.log("Existing user login.");
     generateJwtForUser(req, res);
   }
-  }
+}
 
-  export const completeGoogleRegistration = async (req: Request, res: Response) => {
-    const {username} = req.body;
-    const authHeader = req.headers.authorization;
-    const tempToken =  authHeader?.split(' ')[1];
-    if (!username) {
+export const completeGoogleRegistration = async (req: Request, res: Response) => {
+  const { username } = req.body;
+  const authHeader = req.headers.authorization;
+  console.log("Completing registration for username:", username);
+  console.log("Authorization Header:", authHeader);
+  const tempToken = authHeader?.split(' ')[1];
+  if (!username) {
     return res.status(400).json({ message: "Username is required." });
   }
   if (!tempToken) {
     return res.status(401).json({ message: "Missing registration token." });
   }
-    let payload : partialUser;
-    try{
-      payload = jwt.verify(tempToken, process.env.JWT_SECRET!) as partialUser;
-    } 
-    catch (err) {
-      return res.status(401).json({ message: "Invalid or expired registration token." });
-    }
+  let payload: partialUser;
+  try {
+    payload = jwt.verify(tempToken, process.env.JWT_SECRET!) as partialUser;
+  }
+  catch (err) {
+    return res.status(401).json({ message: "Invalid or expired registration token." });
+  }
 
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-      const newUserResult = await client.query(
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const newUserResult = await client.query(
       "INSERT INTO users (name, email) VALUES ($1, $2) RETURNING id, email, name",
       [payload.displayName, payload.email]
     );
-   
+
     const newUser: User = newUserResult.rows[0];
-     await client.query(
+    await client.query(
       "INSERT INTO auth_credentials (user_id, provider, provider_user_id) VALUES ($1, $2, $3)",
       [newUser.id, payload.provider, payload.authUserId]
     );
@@ -185,36 +200,49 @@ export const handleGoogleRedirect = (req: Request, res: Response) => {
       authUserId: payload.authUserId,
       username: username,
     });
-    
+
     await client.query("COMMIT");
 
     const loginToken = jwt.sign({ sub: newUser.id }, process.env.JWT_SECRET!);
     return res.status(201).json({ token: loginToken, user: newUser });
 
-    }
-    catch (err: any) {
-     await client.query("ROLLBACK");
+  }
+  catch (err: any) {
+    await client.query("ROLLBACK");
     // Handle specific errors, like "username already taken" from your User Service
     if (axios.isAxiosError(err) && err.response?.status === 400) {
       return res.status(400).json({ message: "Username is already taken." });
     }
     res.status(500).json({ message: "Registration failed.", error: err.message });
-    }
-    finally {
+  }
+  finally {
     client.release();
   }
-  };
+};
 
 // jwt for session of google oidc
 
-export const generateJwtForUser = (req: Request, res: Response) => {
+export const generateJwtForUser =async (req: Request, res: Response) => {
   if (req.user) {
     const token = jwt.sign({ sub: req.user.id }, process.env.JWT_SECRET!);
-    // Instead of redirecting, send the token to the client.
-    // The client-side application is then responsible for storing the
-    // token and redirecting the user to the dashboard.
-    res.json({ token, user: req.user });
-    console.log("auth success", req.user);
+    const user = req.user as any;
+    console.log(req.user);
+    const authUserId = user.authUserId;
+
+     let username: string | null = null;
+    try {
+      const userResponse = await axios.get(
+        `${process.env.USER_SERVICE_URL}/api/internal/users/by-auth-id/${authUserId}`
+      );
+      username = userResponse.data.username;
+      console.log(username);
+    } catch (err:any ) {
+      console.warn("Could not fetch username from User Service:", err.message);
+      // Fallback: user might not exist in user service
+    }
+    const redirectUrl = `http://localhost:5173/oauth-callback?status=success&token=${token}&username=${username}`;
+    res.redirect(redirectUrl);
+    // res.json({ token, user: req.user });
   } else {
     res.status(401).json({ message: 'Authentication failed, user not found.' });
   }
