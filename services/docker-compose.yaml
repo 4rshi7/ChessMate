@@ -109,6 +109,8 @@ services:
 
   postgres:
     image: postgres:16-alpine
+    ports:
+      - "5432:5432"
     environment:
       # These variables create the user and database on first run
       - POSTGRES_USER=myuser
