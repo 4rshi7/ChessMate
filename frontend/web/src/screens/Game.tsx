@@ -1,11 +1,38 @@
-import { Chessboard } from "react-chessboard";
-import { Chess } from 'chess.js'
+import {useEffect} from 'react';
+import GameLeftPanel from '../components/GameLeftPanel';
+import GameRightPanel from '../components/GameRightPanel';
+import ChessBoard from '../components/ChessBoard'; 
+import { useGameStore } from '../store/gameStore'; 
 
-const chess = new Chess();
+export default function Game() {
+  const { status, gameId, initGame } = useGameStore();
 
-export default function Game(){
-  const chessboardOptions = {
-    // your config options here
-  };
-   return <Chessboard options={chessboardOptions} />;
+  // Initialize a game when the component mounts if not already active
+  useEffect(() => {
+    if (status === 'idle') {
+      // You might get a game ID from a server or generate one
+      initGame("game_123"); 
+    }
+  }, [status, gameId, initGame]);
+
+  return (
+    <div className="min-h-screen flex justify-center items-center bg-gray-200">
+      <div className="flex w-full max-w-7xl space-x-6">
+        {/* Left Column */}
+        <div className="w-1/4 shrink-0 bg-white shadow-md rounded-2xl">
+          <GameLeftPanel />
+        </div>
+
+        {/* Middle Column (Chessboard) */}
+        <div className="grow flex items-center justify-center min-w-0 rounded-2xl  p-4 bg-white shadow-md ">
+          <ChessBoard />
+        </div>
+
+        {/* Right Column */}
+        <div className="w-1/4 shrink-0 bg-white shadow-md rounded-2xl">
+          <GameRightPanel/>
+        </div>
+      </div>
+    </div>
+  );
 }
