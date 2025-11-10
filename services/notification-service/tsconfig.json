@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    /* ---- File Layout ---- */
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    /* ---- Environment ---- */
+    "target": "ESNext",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ESNext"],
+    "types": ["node"],
+
+    /* ---- Output Options ---- */
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+
+    /* ---- Type Safety ---- */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+
+    /* ---- Module / Import Handling ---- */
+    "esModuleInterop": true,            // ✅ helps when importing CommonJS modules
+    "verbatimModuleSyntax": true,       // ✅ required for clean ESM behavior
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+
+    /* ---- Misc ---- */
+    "resolveJsonModule": true,          // ✅ allows importing .json files
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src"]
+}

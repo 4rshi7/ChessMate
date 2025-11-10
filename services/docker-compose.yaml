@@ -1,0 +1,113 @@
+version: '3.8'
+
+services:
+  # ---------------------------------
+  # API GATEWAY (The "Front Door")
+  # ---------------------------------
+  api-gateway:
+    image: apache/apisix:latest
+    ports:
+      - "8080:9080" # Access gateway at http://localhost:8080
+    volumes:
+      - ./apisix.yaml:/usr/local/apisix/conf/config.yaml
+    environment:
+      - APISIX_STAND_ALONE=true
+    depends_on:
+      - auth-service
+      - matchmaking-service
+    networks:
+      - chess_network
+
+  # ---------------------------------
+  # BACKEND HTTP SERVICES
+  # ---------------------------------
+  auth-service:
+    build: ./authentication-service
+    environment:
+      - PORT=5001
+      - JWT_SECRET=MY_SECRET_KEY
+    networks:
+      - chess_network
+
+  matchmaking-service:
+    build: ./matchmaking-service
+    environment:
+      - PORT=4000
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - chess_network
+
+  # ---------------------------------
+  # REAL-TIME (WEBSOCKET) SERVICES
+  # ---------------------------------
+  pvp-gameplay-service:
+    build: ./pvp-gameplay-service
+    ports:
+      - "4001:4001"
+    environment:
+      - PORT=4001
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - chess_network
+
+  notification-service:
+    build: ./notification-service
+    ports:
+      - "4002:4002"
+    environment:
+      - PORT=4002
+      - REDIS_URL=redis://redis:6379
+    networks:
+      - chess_network
+
+  # ---------------------------------
+  # DATABASE / BROKER
+  # ---------------------------------
+  redis:
+    image: "redis:alpine"
+    networks:
+      - chess_network
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      # These variables create the user and database on first run
+      - POSTGRES_USER=chessuser
+      - POSTGRES_PASSWORD=chesspass
+      - POSTGRES_DB=chessdb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Persists your data
+    networks:
+      - chess_network
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    environment:
+      # Use default guest/guest credentials (fine for dev)
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "check_running", "-q" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "15672:15672" # Management UI (visit http://localhost:15672)
+    networks:
+      - chess_network
+
+# Define a shared network for all services
+networks:
+  chess_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
