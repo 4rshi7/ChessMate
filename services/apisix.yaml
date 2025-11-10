@@ -2,11 +2,6 @@
 # apisix.yaml
 # ==========================================
 
-deployment:
-  role: data_plane
-  role_data_plane:
-    config_provider: yaml
-
 upstreams:
   - id: auth_service
     type: roundrobin
@@ -33,12 +28,21 @@ routes:
     plugins:
       jwt-auth:
         algorithm: HS256                 # ✅ Match your JWT signing algorithm (HS256, RS256, etc.)
-
-        # For HS256 (symmetric secret):
-        secret: "MY_JWT_SECRET"
+        secret: "mysuperlongsharedsecretkey123456"            # ✅ Must match the secret used to sign JWTs
         header: Authorization             # ✅ Default, but you can change
         query: jwt                        # Optional: allow ?jwt=token
         cookie: jwt                       # Optional: allow cookies
+#        validate_consumer: false
         claims_to_verify:
           - exp
           - nbf
+      proxy-rewrite:
+        regex_uri: [ "^/api/(.*)", "/$1" ]
+
+consumers:
+  - username: default
+    plugins:
+      jwt-auth:
+        key: default
+        secret: "mysuperlongsharedsecretkey123456"
+#END

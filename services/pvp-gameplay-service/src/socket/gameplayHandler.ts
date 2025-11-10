@@ -6,7 +6,8 @@ export const onConnection = async (io: Server, socket: Socket) => {
     const userId = (socket as any).user.id;
     console.log(`User ${userId} connected with socket ${socket.id}`);
 
-    socket.on('joinRoom', async (gameId: string) => {
+    socket.on('joinRoom', async (joinData: {authToken: string, gameId: string}) => {
+        const { gameId } = joinData;
         console.log(`User ${userId} joining room for game ${gameId}`);
         const game = await redisClient.hGetAll(`game:match:${gameId}`);
 
@@ -39,7 +40,9 @@ export const onConnection = async (io: Server, socket: Socket) => {
         const turn = chess.turn();
         if ((turn === 'w' && userId !== game.whitePlayer) ||
             (turn === 'b' && userId !== game.blackPlayer)) {
-            return socket.emit('gameError', 'It is not your turn');
+            return socket.emit('gameError', {
+                message: "It's not your turn."
+            });
         }
 
         let moveResult;
@@ -47,7 +50,9 @@ export const onConnection = async (io: Server, socket: Socket) => {
             moveResult = chess.move({from, to});
         }catch (err){
             console.log("Invalid Move");
-            return socket.emit('gameError', 'Invalid move');
+            return socket.emit('gameError', {
+                message: "Invalid move."
+            });
         }
 
         const newFen = chess.fen();
