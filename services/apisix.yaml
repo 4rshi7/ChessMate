@@ -13,12 +13,20 @@ upstreams:
     nodes:
       "matchmaking-service:4000": 1
 
+  - id: user_service
+    type: roundrobin
+    nodes:
+      "user-service:5002": 1
+
 routes:
   # Public route for login/register
   - id: auth_route
     uris:
       - /api/auth/*
     upstream_id: auth_service
+    plugins:
+      proxy-rewrite:
+        regex_uri: [ "^/api/(.*)", "/$1" ]
 
   # Protected route — requires JWT
   - id: matchmaking_route
@@ -38,6 +46,25 @@ routes:
           - nbf
       proxy-rewrite:
         regex_uri: [ "^/api/(.*)", "/$1" ]
+
+
+  - id: user_route
+    uris:
+      - /api/users
+      - /api/users/*
+      - /api/leaderboard/*
+    upstream_id: user_service
+    plugins:
+      jwt-auth:
+        algorithm: HS256
+        secret: "mysuperlongsharedsecretkey123456"
+        header: Authorization
+        query: jwt
+        cookie: jwt
+        claims_to_verify:
+          - exp
+          - nbf
+
 
 consumers:
   - username: default
