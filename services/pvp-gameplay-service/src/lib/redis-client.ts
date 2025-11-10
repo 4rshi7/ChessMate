@@ -5,7 +5,7 @@ type RedisClient = ReturnType<typeof createClient>;
 
 // Create the client instance. It will be shared across the entire application.
 export const redisClient: RedisClient = createClient({
-    // url: 'redis://user:password@redis-server:6379' // Example with password
+    url: process.env.REDIS_URL || 'redis://localhost:6379'
 });
 
 // Centralized error handling

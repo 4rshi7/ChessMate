@@ -39,15 +39,15 @@ export const onConnection = async (io: Server, socket: Socket) => {
         const turn = chess.turn();
         if ((turn === 'w' && userId !== game.whitePlayer) ||
             (turn === 'b' && userId !== game.blackPlayer)) {
-            return socket.emit('error', 'It is not your turn');
+            return socket.emit('gameError', 'It is not your turn');
         }
 
         let moveResult;
         try{
             moveResult = chess.move({from, to});
         }catch (err){
-            console.log("Invalid Move")
-            return socket.emit('error', 'Invalid move');
+            console.log("Invalid Move");
+            return socket.emit('gameError', 'Invalid move');
         }
 
         const newFen = chess.fen();
@@ -68,6 +68,8 @@ export const onConnection = async (io: Server, socket: Socket) => {
         }else{
             newClockValue = parseInt(game.whiteClock || '0') - timeElapsed;
         }
+
+        console.log("clock: ", newClockValue);
 
         if(newClockValue <= 0){
             // This player ran out of time.
@@ -111,9 +113,9 @@ export const onConnection = async (io: Server, socket: Socket) => {
             console.log(`Game ${gameId} has ended.`);
 
             // Broadcast the final result
-            let result = "1/2-1/2"; // Draw
+            let result = "draw"; // Draw
             if (chess.isCheckmate()) {
-                result = turn === 'w' ? "1-0" : "0-1"; // White/Black won
+                result = turn === 'w' ? "white" : "black"; // White/Black won
             }
             io.to(gameId).emit('gameOver', { result: result });
 

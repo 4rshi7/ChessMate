@@ -1,0 +1,44 @@
+# ==========================================
+# apisix.yaml
+# ==========================================
+
+deployment:
+  role: data_plane
+  role_data_plane:
+    config_provider: yaml
+
+upstreams:
+  - id: auth_service
+    type: roundrobin
+    nodes:
+      "auth-service:5001": 1
+
+  - id: matchmaking_service
+    type: roundrobin
+    nodes:
+      "matchmaking-service:4000": 1
+
+routes:
+  # Public route for login/register
+  - id: auth_route
+    uris:
+      - /api/auth/*
+    upstream_id: auth_service
+
+  # Protected route — requires JWT
+  - id: matchmaking_route
+    uris:
+      - /api/matchmaking/*
+    upstream_id: matchmaking_service
+    plugins:
+      jwt-auth:
+        algorithm: HS256                 # ✅ Match your JWT signing algorithm (HS256, RS256, etc.)
+
+        # For HS256 (symmetric secret):
+        secret: "MY_JWT_SECRET"
+        header: Authorization             # ✅ Default, but you can change
+        query: jwt                        # Optional: allow ?jwt=token
+        cookie: jwt                       # Optional: allow cookies
+        claims_to_verify:
+          - exp
+          - nbf
