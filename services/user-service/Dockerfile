@@ -6,17 +6,20 @@ COPY package.json package-lock.json ./
 RUN npm install
 
 COPY . .
+# Generate Prisma client
+RUN npx prisma generate
 RUN npm run build 
-# This assumes you have a 'build' script in package.json to run 'tsc'
 
 # --- Stage 2: Production ---
 FROM node:18-alpine
-
 WORKDIR /app
-# Copy built code and node_modules from the 'builder' stage
+
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/prisma ./prisma
 COPY package.json ./
 
-# Command to run the service
-CMD [ "node", "dist/index.js" ]
+RUN apk add --no-cache openssl
+
+# Gracefully handle non-empty DBs
+CMD ["sh", "-c", "npx prisma migrate deploy || npx prisma migrate resolve --applied $(ls prisma/migrations | head -n 1) && node dist/index.js"]

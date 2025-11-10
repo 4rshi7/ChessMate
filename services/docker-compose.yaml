@@ -21,11 +21,41 @@ services:
   # ---------------------------------
   # BACKEND HTTP SERVICES
   # ---------------------------------
+
+
+  user-service:
+    build: ./user-service
+    ports:
+      - "5002:5002"
+    environment:
+      - DATABASE_URL=postgresql://myuser:mypassword@postgres:5432/userdb?schema=public
+      - PORT=5002
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - chess_network
+
   auth-service:
     build: ./authentication-service
+    ports:
+      - "5001:5001"
     environment:
       - PORT=5001
-      - JWT_SECRET=MY_SECRET_KEY
+      - JWT_SECRET=supersecretvalue
+      - PGUSER=myuser
+      - PGPASSWORD=mypassword
+      - PGHOST=postgres
+      - PGPORT=5432
+      - PGDATABASE=authdb
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - SESSION_SECRET=EagerGainEagerGainEagerGainEagerGain
+      - USER_SERVICE_URL=http://user-service:5002
+
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - chess_network
 
@@ -80,11 +110,16 @@ services:
     image: postgres:16-alpine
     environment:
       # These variables create the user and database on first run
-      - POSTGRES_USER=chessuser
-      - POSTGRES_PASSWORD=chesspass
-      - POSTGRES_DB=chessdb
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=mypassword
+      - POSTGRES_DB=authdb
     volumes:
       - postgres_data:/var/lib/postgresql/data # Persists your data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser -d authdb"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     networks:
       - chess_network
 

@@ -16,6 +16,9 @@ WORKDIR /app
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY package.json ./
+COPY src/db/init.sql ./init.sql
+# Install Postgres client (to run psql)
+RUN apk add --no-cache postgresql-client
 
-# Command to run the service
-CMD [ "node", "dist/index.js" ]
+# Run migrations (init.sql) before starting server
+CMD ["sh", "-c", "PGPASSWORD=$PGPASSWORD psql -h $PGHOST -U $PGUSER -d $PGDATABASE -f ./init.sql && node dist/index.js"]
