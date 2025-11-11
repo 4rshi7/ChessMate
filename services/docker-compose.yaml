@@ -8,16 +8,20 @@ services:
     image: apache/apisix:latest
     ports:
       - "8080:9080" # Access gateway at http://localhost:8080
+      - "9180:9180" # APISIX Admin API
     volumes:
       - ./config.yaml:/usr/local/apisix/conf/config.yaml
       - ./apisix.yaml:/usr/local/apisix/conf/apisix.yaml
     environment:
       - APISIX_STAND_ALONE=true
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       - auth-service
       - matchmaking-service
     networks:
       - chess_network
+    env_file:
+      - ./.env
 
   # ---------------------------------
   # BACKEND HTTP SERVICES
@@ -43,7 +47,7 @@ services:
       - "5001:5001"
     environment:
       - PORT=5001
-      - JWT_SECRET=supersecretvalue
+      - JWT_SECRET=${JWT_SECRET}
       - PGUSER=myuser
       - PGPASSWORD=mypassword
       - PGHOST=postgres
@@ -83,6 +87,7 @@ services:
       - PORT=4001
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -96,6 +101,7 @@ services:
     environment:
       - PORT=4002
       - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET}
     networks:
       - chess_network
 
@@ -109,6 +115,8 @@ services:
 
   postgres:
     image: postgres:16-alpine
+    ports:
+      - "5432:5432"
     environment:
       # These variables create the user and database on first run
       - POSTGRES_USER=myuser

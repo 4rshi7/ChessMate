@@ -36,7 +36,7 @@ routes:
     plugins:
       jwt-auth:
         algorithm: HS256                 # ✅ Match your JWT signing algorithm (HS256, RS256, etc.)
-        secret: "mysuperlongsharedsecretkey123456"            # ✅ Must match the secret used to sign JWTs
+        secret: ${{JWT_SECRET}}           # ✅ Must match the secret used to sign JWTs
         header: Authorization             # ✅ Default, but you can change
         query: jwt                        # Optional: allow ?jwt=token
         cookie: jwt                       # Optional: allow cookies
@@ -81,7 +81,7 @@ routes:
     plugins:
       jwt-auth:
         algorithm: HS256
-        secret: "mysuperlongsharedsecretkey123456"
+        secret: ${{JWT_SECRET}}
         header: Authorization
         query: jwt
         cookie: jwt
@@ -94,6 +94,6 @@ consumers:
     plugins:
       jwt-auth:
         key: default
-        secret: "mysuperlongsharedsecretkey123456"
+        secret: ${{JWT_SECRET}}
         store_in_ctx: true
 #END

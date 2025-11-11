@@ -1,19 +1,25 @@
 import { Request, Response } from 'express';
 import amqp from 'amqplib';
 import {amqp_channel} from "../lib/rabbitmq-connection";
+import axios from "axios";
 
 const MATCHMAKING_QUEUE = process.env.MATCHMAKING_QUEUE || 'matchmaking_queue';
 
 export const enterMatchmakingQueue = async (req: Request, res: Response) => {
     try{
-    if(!amqp_channel){
-        throw new Error('RabbitMQ channel is not initialized');
-    }
-        //TODO: Replace this with actual player data from authentication middleware
-        const playerID = req.get('Player-Data') || '12345';
+        if(!amqp_channel){
+            throw new Error('RabbitMQ channel is not initialized');
+        }
+        const playerID = req.get('x-userid');
+        console.log("Player ID from header:", playerID);
 
-        //TODO: Get actual player rating from user profile service
-        const playerRating = Math.floor(Math.random() * 1000);
+        if(!playerID){
+            return res.status(404).send({ message: 'Please login to start game' });
+        }
+
+        const player = await axios.get(`http://user-service:5002/api/users/id/${playerID}`);
+        const playerRating: number = player.data.ratings.blitz;
+        console.log("Player Rating:", playerRating);
 
         const playerData = JSON.stringify({ playerID, playerRating });
 

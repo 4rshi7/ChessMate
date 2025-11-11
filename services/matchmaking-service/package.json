@@ -13,6 +13,7 @@
   "dependencies": {
     "@types/node": "^24.7.1",
     "amqplib": "^0.10.9",
+    "axios": "^1.13.2",
     "express": "^5.1.0",
     "redis": "^5.8.3"
   },
