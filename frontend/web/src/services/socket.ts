@@ -5,58 +5,58 @@ import { useAuthStore } from "../store/authStore";
 
 let gameSocket: Socket | null = null;
 
-let notifSocket : Socket | null = null;
+let notifSocket: Socket | null = null;
 
 
 export const connectToNotifSocket = (url: string) => {
-  if(notifSocket) return notifSocket;
+  if (notifSocket) return notifSocket;
 
-    const token= "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXkiOiJkZWZhdWx0IiwiaWQiOiIxMjM0NSIsInVzZXIiOiJKb2huIERvZSIsImFkbWluIjp0cnVlLCJpYXQiOjE1MTYyMzkwMjIsIm5iZiI6MTc2Mjc3NzY1NCwiZXhwIjoxNzY0NTExMDQ3fQ.uKndUtQCA_hCiHpLKDi6afYP4Vpc6uNVEJrx7LUKZWg";
+  const token = useAuthStore.getState().token;
 
-
-     notifSocket = io(url, {
+  notifSocket = io(url, {
     auth: { token },
     transports: ["websocket"],
   });
 
-  console.log(notifSocket);
 
-  notifSocket.on("connect", ()=>{
+  notifSocket.on("connect", () => {
     console.log("connected to notification service ");
   });
 
-  notifSocket.on("disconnect",(reason)=>{
-    console.log("disconnected" , reason);
-     gameSocket = null;
+  notifSocket.on("disconnect", (reason) => {
+    console.log("disconnected", reason);
+    // notifSocket = null;
   })
- // ready , active , completed
-  notifSocket.on("ready",(payload)=>{
-    const gameId = payload.gameId;
+  // ready , active , completed
+  notifSocket.on("ready", (payload) => {
+    console.log(" READY EVENT RECEIVED");
+    console.log(payload);
+    const gameId = payload.gameID;
     const color = payload.color;
-
-   connectToGameSocket("http://localhost:4001"); 
-
-    // 3. Tell the store to join the room. This will call sendGameSocket("joinRoom", ...)
-    //    We also pass the color so the store can set it temporarily.
-    //    We pass 'undefined' for fen/clocks so they use the defaults *for now*.
+    // 3. Tell the store to join the room. 
+    console.log("game id ", gameId);
+    console.log("color", color);
     useGameStore.getState().initGame(gameId, undefined, color, undefined);
-    useGameStore.getState().joinRoom(gameId);
   })
 }
 
-export const sendNotifSocket =  (event: string, payload?: any) => {
-  if (!notifSocket || !notifSocket.connected) throw new Error("Socket not connected");
+export const disconnectNotifSocket = () => {
+  if (notifSocket) {
+    console.log("Disconnecting from notification service...");
+    notifSocket.disconnect();
+    notifSocket = null;
+  }
+};
+
+export const sendNotifSocket = (event: string, payload?: any) => {
+  if (!notifSocket) throw new Error("Socket not connected");
   notifSocket.emit(event, payload);
 };
 
 export const connectToGameSocket = (url: string) => {
   if (gameSocket) return gameSocket;
 
-  // const token = useAuthStore.getState().token; uncomment this later
-
-  const token= "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXkiOiJkZWZhdWx0IiwiaWQiOiIxMjM0NSIsInVzZXIiOiJKb2huIERvZSIsImFkbWluIjp0cnVlLCJpYXQiOjE1MTYyMzkwMjIsIm5iZiI6MTc2Mjc3NzY1NCwiZXhwIjoxNzY0NTExMDQ3fQ.uKndUtQCA_hCiHpLKDi6afYP4Vpc6uNVEJrx7LUKZWg";
-
-
+  const token = useAuthStore.getState().token;
 
   gameSocket = io(url, {
     auth: { token },
@@ -73,18 +73,22 @@ export const connectToGameSocket = (url: string) => {
     console.log("❌ Disconnected:", reason);
     gameSocket = null;
   });
-  
-    gameSocket.io.on("reconnect", (attempt) => {
+
+  gameSocket.io.on("reconnect", (attempt) => {
     console.log(`🔄 Reconnected after ${attempt} attempts`);
   });
 
 
 
   gameSocket.on("gameStateUpdate", (data) => {
+    console.log("game Update data", data);
     useGameStore.getState().updateFromServer({
       fen: data.fen,
       lastMove: data.lastMove,
-      clocks: data.clocks,
+      clocks: {
+        white: data.clocks.whiteClock,
+        black: data.clocks.blackClock,
+      }
     });
   });
 
@@ -100,8 +104,16 @@ export const connectToGameSocket = (url: string) => {
 };
 
 export const sendGameSocket = (event: string, payload?: any) => {
-  if (!gameSocket || !gameSocket.connected) throw new Error("Socket not connected");
+  if (!gameSocket) throw new Error("Socket not connected");
   gameSocket.emit(event, payload);
+};
+
+export const disconnectGameSocket = () => {
+  if (gameSocket) {
+    console.log("❌ Disconnecting from game socket...");
+    gameSocket.disconnect();
+    gameSocket = null;
+  }
 };
 
 

@@ -18,6 +18,7 @@ export default function OAuthCallback(){
     if (status === "success" && token) {
       console.log(params);
       // ✅ Normal login flow
+      console.log(token);
       setToken(token);
       if(username) setUserName(username);
       navigate("/home", { replace: true });

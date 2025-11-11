@@ -26,7 +26,6 @@ export const verify = async (
   profile: any,
   done: (err: any, user?: any) => void
 ) => {
-  console.log(profile);
   console.log(29);
   const providerUserId = profile.id;
   const userEmail = profile.emails && profile.emails[0]?.value
@@ -205,12 +204,14 @@ export const completeGoogleRegistration = async (req: Request, res: Response) =>
 
     const now = Math.floor(Date.now() / 1000);
     const payloadForJwt = {
+  key: "default",
   sub: newUser.id,
   nbf: now,
   exp: now + 7 * 24 * 60 * 60, // 1 week later
 };
 
     const loginToken = jwt.sign(payloadForJwt, process.env.JWT_SECRET!);
+    console.log(loginToken);
 
     return res.status(201).json({ token: loginToken, user: newUser });
 
@@ -232,22 +233,30 @@ export const completeGoogleRegistration = async (req: Request, res: Response) =>
 
 export const generateJwtForUser =async (req: Request, res: Response) => {
   if (req.user) {
-    const token = jwt.sign({ sub: req.user.id }, process.env.JWT_SECRET!);
-    const user = req.user as any;
-    console.log(req.user);
-    const authUserId = user.authUserId;
+      const now = Math.floor(Date.now() / 1000);
+    const payloadForJwt = {
+  key: "default",
+  sub: req.user.id,
+  nbf: now,
+  exp: now + 7 * 24 * 60 * 60, // 1 week later
+};
 
+    const token = jwt.sign(payloadForJwt, process.env.JWT_SECRET!);
+    const user = req.user as any;
+    // console.log(req.user);
+    const authUserId = user.authUserId;
      let username: string | null = null;
     try {
       const userResponse = await axios.get(
         `${process.env.USER_SERVICE_URL}/api/internal/users/by-auth-id/${authUserId}`
       );
       username = userResponse.data.username;
-      console.log(username);
+      // console.log(username);
     } catch (err:any ) {
       console.warn("Could not fetch username from User Service:", err.message);
       // Fallback: user might not exist in user service
     }
+    console.log("token is : ", token);
     const redirectUrl = `http://localhost:5173/oauth-callback?status=success&token=${token}&username=${username}`;
     res.redirect(redirectUrl);
     // res.json({ token, user: req.user });

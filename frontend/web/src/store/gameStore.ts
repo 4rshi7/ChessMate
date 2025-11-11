@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { Chess, Move } from 'chess.js';
 import { sendGameSocket } from "../services/socket";
 import { useAuthStore } from './authStore';
+import { Socket } from 'socket.io-client';
 
 type Clocks = { white: number; black: number };
 
@@ -16,7 +17,7 @@ export type GameState = {
   status: 'ready' | 'waiting' | 'active' | 'finished';
   playerColor: 'white' | 'black' ,
   initGame: (gameId: string, fen?: string,playerColor?: 'white' | 'black', clocks?: Clocks) => void;
-  joinRoom: (gameId: string) => void;
+  joinRoom: (socket: Socket, gameId: string) => void;
   makeMove: (move: { from: string; to: string; promotion?: string }) => boolean; // true if legal false o/w
   resetGame: () => void;
   updateFromServer: (update: { fen: string; lastMove: string; clocks: Clocks }) => void;
@@ -32,14 +33,12 @@ export const useGameStore = create<GameState>((set, get) => ({
   status: 'waiting',
   
   initGame: (gameId, fen = START_POS, playerColor: 'white' | 'black' = 'white', clocks = { white: 300, black: 300 }) =>
-    set({ gameId, fen,playerColor, clocks, moves: [], status: 'active' }),
-  joinRoom: (gameId) => {
+    set({ gameId, fen,playerColor, clocks, moves: [], status: 'ready' }),
+  joinRoom: (socket, gameId) => {
     try {
-
-      // const token = useAuthStore.getState().token; tokens are differently encrypted change this later
-
-      const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTc2Mjg4NTc2MX0.vYGbL5jf3F3_itcOI362936Z_VIecyvBn0r4RLVmqJU"
-
+      const token = useAuthStore.getState().token;
+      // change this maybe 
+      // socket.emit("joinRoom", {authToken: token, gameId});
       sendGameSocket("joinRoom", {authToken: token, gameId }); 
       console.log("🔗 Joining game room:", gameId);
       set({ gameId, status: 'waiting' });

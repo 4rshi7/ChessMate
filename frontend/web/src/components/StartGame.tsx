@@ -1,20 +1,28 @@
-import React, { useState } from "react";
 import { Card } from "flowbite-react";
 import { useNavigate } from "react-router-dom";
+import api from "../api/apiClients"
 
 
 export default function StartGame() {
-  const [selectedTime, setSelectedTime] = useState("BLITZ");
   const navigate = useNavigate();
+  
 
   const handleStartGame = async () => {
-    // TODO: connect to your backend / matchmaking service
-    // e.g. await api.post("/game/start", { timeControl: selectedTime, color: selectedColor });
-    console.log("Starting game with:", selectedTime);
+    try{
+    const res = await api.get("/matchmaking/join");
+    console.log(res);
+    if(res.status ==200){
+      navigate('/queue');
+    }
+    else{
+      console.log("server error");
+    }
+  }
+  catch(error){
+    console.error(error);
+  }
 
-    
 
-    navigate("/play"); // redirect to board page
   };
 
   return (

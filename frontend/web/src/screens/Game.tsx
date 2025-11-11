@@ -3,17 +3,40 @@ import GameLeftPanel from '../components/GameLeftPanel';
 import GameRightPanel from '../components/GameRightPanel';
 import ChessBoard from '../components/ChessBoard'; 
 import { useGameStore } from '../store/gameStore'; 
+import { useParams } from 'react-router-dom';
+import { connectToGameSocket, disconnectGameSocket } from '../services/socket';
 
 export default function Game() {
-  const { status, gameId, initGame } = useGameStore();
+  
+
+  // const { paramGameId } = useParams<{ gameId: string }>();
+
+  // change this later 
+  const status = useGameStore((state)=> state.status);
+  const joinRoom = useGameStore((state)=>state.joinRoom);
+  // const gameId = useGameStore((state)=>state.gameId);
+  const { gameId } = useParams<{ gameId: string }>();
+
+
 
   // Initialize a game when the component mounts if not already active
   useEffect(() => {
-    if (status === 'idle') {
-      // You might get a game ID from a server or generate one
-      initGame("game_123"); 
+    async function connection(){
+       const socket = await connectToGameSocket("http://localhost:4001");
+       if(gameId){
+            joinRoom(socket,gameId);
+        }
     }
-  }, [status, gameId, initGame]);
+    connection();
+
+   
+
+   return () => {
+      disconnectGameSocket();
+      // Optionally, you could reset the game state
+      // useGameStore.getState().resetGame();
+    };
+  }, [gameId]);
 
   return (
     <div className=" flex justify-center items-center bg-gray-200">

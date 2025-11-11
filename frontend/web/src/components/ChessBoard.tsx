@@ -1,7 +1,7 @@
 import { Chessboard} from "react-chessboard";
 import { useGameStore } from "../store/gameStore"; // Adjust path as needed
 import { useEffect } from "react";
-import { connectToGameSocket } from "../services/socket";
+import { connectToGameSocket, connectToNotifSocket } from "../services/socket";
 
 export default function ChessBoard() {
 
@@ -15,15 +15,8 @@ export default function ChessBoard() {
   const resetGame = useGameStore((state) => state.resetGame);
   const updateFromServer = useGameStore((state)=> state.updateFromServer);
   const handleGameOver = useGameStore((state)=> state.handleGameOver);
+  const playerColor = useGameStore((state)=>state.playerColor);
 
-  useEffect(()=>{
-    const socket = connectToGameSocket("http://localhost:4001");
-    console.log(socket);
-     socket.on("connect", () => {
-      console.log("✅ Socket connected, now joining room");
-      joinRoom("123"); // Safe to emit now
-    });
-  },[])
 
 
   function onPieceDrop(sourceSquare: string, targetSquare: string, piece : string) {
@@ -45,6 +38,7 @@ export default function ChessBoard() {
       <Chessboard
         position={fen}
         onPieceDrop={onPieceDrop}
+        boardOrientation={playerColor}
       />
       <button onClick={resetGame}>
         Reset Game

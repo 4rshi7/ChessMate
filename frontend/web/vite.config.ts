@@ -20,6 +20,10 @@ export default defineConfig(({ mode }) => {
       target: "http://localhost:5002",
       changeOrigin: true,
     },
+     "/api/matchmaking": {
+      target: "http://localhost:8080",
+      changeOrigin: true,
+    },
 
   },
 },

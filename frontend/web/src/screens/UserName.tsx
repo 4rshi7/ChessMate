@@ -1,6 +1,6 @@
 import Card from "../components/Card";
 import king from "../assets/king (1).png"
-import {SetStateAction, use, useState} from "react";
+import {SetStateAction, useState} from "react";
 import { useAuthStore } from "../store/authStore";
 import api from "../api/apiClients";
 import axios from "axios";

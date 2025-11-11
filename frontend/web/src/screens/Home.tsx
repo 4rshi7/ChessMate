@@ -5,8 +5,9 @@ import RatingProgress from "../components/StartGame";
 import QuickStats from "../components/QuickStats";
 import RecentGames from "../components/RecentGames";
 import StartGame from "../components/StartGame";
-
+import { useAuthStore } from "../store/authStore";
 export default function Home(){
+  console.log(useAuthStore.getState().token);
   return (
     <div className="px-12">
       <h1 className="text-4xl font-bold mt-4">Your Dashboard</h1>
