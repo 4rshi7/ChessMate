@@ -95,6 +95,8 @@ const initializeGameState = async (gameData: any, chessGame: Chess) => {
     console.log(gameState);
 
     await redisClient.hSet(`game:match:${gameID}`, redisGameObject);
+    await redisClient.sAdd("ingame:users", gameState.whitePlayer);
+    await redisClient.sAdd("ingame:users", gameState.blackPlayer);
 
     return gameState;
 }
