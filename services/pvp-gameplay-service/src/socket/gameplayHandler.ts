@@ -9,6 +9,7 @@ import axios = require("axios");
 
 export const onConnection = async (io: Server, socket: Socket) => {
     const userId = (socket as any).user.sub;
+    console.log("socket user:" , (socket as any).user);
     console.log(`User ${userId} connected with socket ${socket.id}`);
 
     socket.on('joinRoom', async (joinData: {authToken: string, gameId: string}) => {
@@ -24,11 +25,14 @@ export const onConnection = async (io: Server, socket: Socket) => {
 
         socket.data.gameId = gameId;
         socket.join(gameId);
+
+        socket.data.color = (userId === game.whitePlayer) ? 'white' : 'black';
         console.log(`User ${userId} joined room for game ${gameId}`);
     });
 
-    socket.on('makeMove', async (moveData: {gameId: string, from: string, to: string}) => {
-        const { gameId, from, to } = moveData;
+    socket.on('makeMove', async (moveData: { from: string, to: string}) => {
+        const {  from, to } = moveData;
+        const gameId = socket.data.gameId;
         const userId = (socket as any).user.sub;
 
         console.log(`User ${userId} making move in game ${gameId} from ${from} to ${to}`);
@@ -84,7 +88,7 @@ export const onConnection = async (io: Server, socket: Socket) => {
         if(newClockValue <= 0){
             // This player ran out of time.
             const winner = (turn === 'w') ? 'black' : 'white';
-            io.to(gameId).emit('gameOver', { result: 'TIMEOUT', winner: winner });
+            io.to(gameId).emit('gameOver', { result: winner, termination_type: "TIMEOUT" });
 
             // Save the game, but with the timeout result
             await saveCompletedGame(gameId, game.blackPlayer, game.whitePlayer, game.moves, winner, "TIMEOUT");
@@ -106,7 +110,7 @@ export const onConnection = async (io: Server, socket: Socket) => {
             status: newStatus,
             blackClock: newBlackClock,
             whiteClock: newWhiteClock,
-            lastMoveTimestamp: Date.now()
+            lastMoveTimestamp: Date.now(),
         });
 
         io.to(gameId).emit('gameStateUpdate', {
@@ -119,7 +123,6 @@ export const onConnection = async (io: Server, socket: Socket) => {
         });
 
         // --- HANDLE GAME OVER ---
-        //TODO: Handle resignation
         if (isGameOver) {
             console.log(`Game ${gameId} has ended.`);
 
@@ -128,17 +131,30 @@ export const onConnection = async (io: Server, socket: Socket) => {
             if (chess.isCheckmate()) {
                 result = turn === 'w' ? "white" : "black"; // White/Black won
             }
-            io.to(gameId).emit('gameOver', { result: result });
 
             //TODO: Calculate termination type properly
             const termination_type: TerminationType = chess.isCheckmate() ? "CHECKMATE" :
                 chess.isStalemate() ? "STALEMATE" :
                     "AGREED_DRAW";
+            io.to(gameId).emit('gameOver', { result: result, termination_type });
 
             //Generate PGN and save to PostgreSQL
             await saveCompletedGame(gameId, game.blackPlayer, game.whitePlayer, newMovesString, result, termination_type);
         }
     });
+
+    socket.on('resign', async () => {
+        const  color  = socket.data.color;
+        const gameId = socket.data.gameId;
+        const game = await redisClient.hGetAll(`game:match:${gameId}`);
+
+        const result: ResultType = color === 'white' ? 'black' : 'white';
+
+        io.to(gameId).emit('gameOver', { result: result, termination_type: "RESIGNATION" });
+        await updateRatings(gameId, game.blackPlayer, game.whitePlayer, result);
+        await saveCompletedGame(gameId, game.blackPlayer, game.whitePlayer, game.moves, result, "RESIGNATION");
+
+    })
 }
 
 const saveCompletedGame = async (gameId: string, blackPlayerId: string | undefined, whitePlayerId: string | undefined, moves: string | undefined, result: ResultType, termination_type: TerminationType) => {
@@ -190,9 +206,22 @@ const saveCompletedGame = async (gameId: string, blackPlayerId: string | undefin
     }catch (err) {
         console.error("Error saving game to database:", err);
     }
+
+    try{
+        await redisClient.del(`game:match:${gameId}`);
+        await redisClient.sRem("ingame:users", blackPlayerId);
+        await redisClient.sRem("ingame:users", whitePlayerId);
+        console.log(`Deleted game ${gameId} from Redis.`);
+    }catch (err){
+        console.error("Error deleting game from Redis:", err);
+    }
 }
 
-const updateRatings = async (gameId: string, blackPlayerId: string, whitePlayerId: string, result: ResultType) => {
+const updateRatings = async (gameId: string, blackPlayerId: string | undefined, whitePlayerId: string | undefined, result: ResultType) => {
+    if(!blackPlayerId || !whitePlayerId){
+        console.log("Cannot update ratings without both player IDs.");
+        return;
+    }
     const elo = new EloRank();
 
     // 2. Fetch current ratings for BOTH players
