@@ -99,7 +99,7 @@ export const getLeaderboard = async (req: Request, res: Response) => {
     }
 }
 
-export const getUserById = async (req: Request, res: Response) => {
+export const getUserByUsername = async (req: Request, res: Response) => {
     console.log("starting");
     const { username } = req.params;
     console.log(username);
@@ -127,6 +127,36 @@ export const getUserById = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Failed to fetch user', error });
     }
 }
+
+export const getUserById = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    console.log(id);
+    if (!id) {
+        return res.status(400).json({ error: "Username is required" });
+    }
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id },
+            include: {
+                ratings: true,
+                statistics: true,
+                gameHistory: {
+                    orderBy: { playedAt: "desc" }, // optional, get recent games first
+                    take: 10, // optional, limit number of games returned
+                },
+            },
+        });
+        if (!user) {
+            return res.status(404).json({message: 'User not found'});
+        }
+        res.status(200).json(user);
+    } catch (error) {
+        console.error("Error fetching user by userId:", error);
+        res.status(500).json({ message: 'Failed to fetch user', error });
+    }
+}
+
+
 
 export const updateUser = async (req: Request, res: Response) => {
    const username = req.params.userId;

@@ -24,7 +24,7 @@ export const onConnection = async (io: Server, socket: Socket) => {
 
     socket.on('makeMove', async (moveData: {gameId: string, from: string, to: string}) => {
         const { gameId, from, to } = moveData;
-        const userId = (socket as any).user.id;
+        const userId = (socket as any).user.sub;
 
         console.log(`User ${userId} making move in game ${gameId} from ${from} to ${to}`);
 

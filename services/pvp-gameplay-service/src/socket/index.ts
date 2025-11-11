@@ -5,7 +5,7 @@ import { onConnection } from './gameplayHandler.js';
 
 // JWT verification function
 const verifyJwt = (token: string): { id: string } => {
-    return jwt.verify(token, 'MY_SECRET_KEY') as { id: string };
+    return jwt.verify(token, process.env.JWT_SECRET || "") as { id: string };
 };
 
 export function initSocketServer(httpServer: HttpServer) {

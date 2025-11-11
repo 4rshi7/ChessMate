@@ -36,14 +36,38 @@ routes:
     plugins:
       jwt-auth:
         algorithm: HS256                 # ✅ Match your JWT signing algorithm (HS256, RS256, etc.)
-        secret: "mysuperlongsharedsecretkey123456"            # ✅ Must match the secret used to sign JWTs
+        secret: ${{JWT_SECRET}}           # ✅ Must match the secret used to sign JWTs
         header: Authorization             # ✅ Default, but you can change
         query: jwt                        # Optional: allow ?jwt=token
         cookie: jwt                       # Optional: allow cookies
-#        validate_consumer: false
+        store_in_ctx: true
+
         claims_to_verify:
           - exp
           - nbf
+      serverless-pre-function:
+        phase: "access" # Runs after authentication
+        functions:
+          - |
+            return function(conf, ctx)
+              -- 1. Import the APISIX core library
+              local core = require("apisix.core")
+            
+              -- 2. Get the payload from the context
+              local payload = ctx.jwt_auth_payload
+            
+              -- 3. Check if the payload exists
+              if payload then
+                -- 4. Set headers for the upstream service
+                core.request.set_header(ctx, "X-UserID", payload.sub)
+            
+                -- 5. (Optional) Remove the original Authorization header
+                core.request.set_header(ctx, "Authorization", nil)
+              else
+                -- Optional: Log an error if the payload is missing
+                core.log.warn("jwt_auth_payload is missing from context")
+              end
+            end
       proxy-rewrite:
         regex_uri: [ "^/api/(.*)", "/$1" ]
 
@@ -57,7 +81,7 @@ routes:
     plugins:
       jwt-auth:
         algorithm: HS256
-        secret: "mysuperlongsharedsecretkey123456"
+        secret: ${{JWT_SECRET}}
         header: Authorization
         query: jwt
         cookie: jwt
@@ -65,11 +89,11 @@ routes:
           - exp
           - nbf
 
-
 consumers:
   - username: default
     plugins:
       jwt-auth:
         key: default
-        secret: "mysuperlongsharedsecretkey123456"
+        secret: ${{JWT_SECRET}}
+        store_in_ctx: true
 #END
