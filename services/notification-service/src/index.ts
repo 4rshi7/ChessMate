@@ -8,7 +8,7 @@ const NOTIFICATION_QUEUE = process.env.NOTIFICATION_QUEUE || 'notification_queue
 
 // JWT verification function
 const verifyJwt = (token: string): { id: string } => {
-  return jwt.verify(token, 'MY_SECRET_KEY') as { id: string };
+  return jwt.verify(token, process.env.JWT_SECRET || "") as { id: string };
 };
 
 //Create the server
@@ -58,7 +58,7 @@ io.use((socket, next) => {
 //Connection Handler (When a client connects)
 io.on("connection", (socket) => {
   console.log(`Client connected [id=${socket.id}]`);
-  const userId = (socket as any).user.id;
+  const userId = (socket as any).user.sub;
   console.log(`User ID from token: ${userId}`);
 
   // Join room
