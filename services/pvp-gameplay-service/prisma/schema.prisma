@@ -1,0 +1,41 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  // output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Game {
+  game_id          String         @id
+  white_player_id  String
+  black_player_id  String
+  result           Result
+  termination_type TeminationType
+  pgn              String
+  finished_at      DateTime
+
+  @@map("games")
+}
+
+enum Result {
+  WHITE_WIN
+  BLACK_WIN
+  DRAW
+}
+
+enum TeminationType {
+  CHECKMATE
+  RESIGNATION
+  TIMEOUT
+  STALEMATE
+  AGREED_DRAW
+}

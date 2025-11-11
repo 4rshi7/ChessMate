@@ -3,6 +3,8 @@ import {connectRabbitMQ} from "./lib/rabbitmq-connection.js";
 import {connectRedis} from "./lib/redis-client.js";
 import { createServer} from "http";
 import {initSocketServer} from "./socket/index.js";
+import dotenv from "dotenv";
+dotenv.config();
 
 const PORT = process.env.PORT || 4001;
 
