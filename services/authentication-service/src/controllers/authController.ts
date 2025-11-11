@@ -195,17 +195,18 @@ export const completeGoogleRegistration = async (req: Request, res: Response) =>
       [newUser.id, payload.provider, payload.authUserId]
     );
 
-    await axios.post(process.env.USER_SERVICE_URL + "/api/internal/users", {
+    const userProfile = await axios.post(process.env.USER_SERVICE_URL + "/api/internal/users", {
       authUserId: payload.authUserId,
       username: username,
     });
+    console.log(userProfile);
 
     await client.query("COMMIT");
 
     const now = Math.floor(Date.now() / 1000);
     const payloadForJwt = {
   key: "default",
-  sub: newUser.id,
+  sub: userProfile.data.id,
   nbf: now,
   exp: now + 7 * 24 * 60 * 60, // 1 week later
 };

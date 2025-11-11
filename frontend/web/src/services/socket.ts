@@ -2,11 +2,31 @@
 import { io, Socket } from "socket.io-client";
 import { useGameStore } from "../store/gameStore";
 import { useAuthStore } from "../store/authStore";
+import DisconnectReason = Socket.DisconnectReason;
+import {on} from "socket.io-client/build/esm-debug/on";
 
 let gameSocket: Socket | null = null;
 
 let notifSocket: Socket | null = null;
 
+function onConnect(){
+  console.log("connected to notification service ");
+}
+function onDisconnect(reason: DisconnectReason){
+  console.log("disconnected", reason);
+  notifSocket = null;
+}
+
+function onReady(payload: any){
+  console.log(" READY EVENT RECEIVED");
+  console.log(payload);
+  const gameId = payload.gameID;
+  const color = payload.color;
+  // 3. Tell the store to join the room.
+  console.log("game id ", gameId);
+  console.log("color", color);
+  useGameStore.getState().initGame(gameId, undefined, color, undefined);
+}
 
 export const connectToNotifSocket = (url: string) => {
   if (notifSocket) return notifSocket;
@@ -18,31 +38,20 @@ export const connectToNotifSocket = (url: string) => {
     transports: ["websocket"],
   });
 
+  notifSocket.on("connect", onConnect);
 
-  notifSocket.on("connect", () => {
-    console.log("connected to notification service ");
-  });
-
-  notifSocket.on("disconnect", (reason) => {
-    console.log("disconnected", reason);
-    // notifSocket = null;
-  })
+  notifSocket.on("disconnect", onDisconnect)
   // ready , active , completed
-  notifSocket.on("ready", (payload) => {
-    console.log(" READY EVENT RECEIVED");
-    console.log(payload);
-    const gameId = payload.gameID;
-    const color = payload.color;
-    // 3. Tell the store to join the room. 
-    console.log("game id ", gameId);
-    console.log("color", color);
-    useGameStore.getState().initGame(gameId, undefined, color, undefined);
-  })
+  notifSocket.on("ready", onReady);
 }
 
 export const disconnectNotifSocket = () => {
   if (notifSocket) {
     console.log("Disconnecting from notification service...");
+    notifSocket.off("connect", onConnect);
+    notifSocket.off("disconnect", onDisconnect)
+    notifSocket.off("ready", onReady);
+
     notifSocket.disconnect();
     notifSocket = null;
   }

@@ -2,21 +2,21 @@ import React, { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { connectToNotifSocket, disconnectNotifSocket } from '../services/socket';
 import { useGameStore } from '../store/gameStore';
+import {useAuthStore} from "../store/authStore.ts";
+import { io, Socket } from "socket.io-client";
 
 const Queue = () => {
   const gameId = useGameStore((state) => state.gameId);
 const status = useGameStore((state) => state.status);
+  // const token = useAuthStore((state) => state.token);
 
   const navigate = useNavigate();
 
-  useEffect(()=>{
-    connectToNotifSocket("http://localhost:4002");
-
-    // return () => {
-    //   console.log("Unmounting Queue, disconnecting...");
-    //   disconnectNotifSocket();
-    // };
-  },[])
+  useEffect(() => {
+    return () => {
+      disconnectNotifSocket();
+    };
+  }, []);
 
   console.log( "gameId " ,gameId);
   console.log("status ", status);
