@@ -19,9 +19,10 @@ export const enterMatchmakingQueue = async (req: Request, res: Response) => {
 
         const player = await axios.get(`http://user-service:5002/api/users/id/${playerID}`);
         const playerRating: number = player.data.ratings.blitz;
+        const playerUsername: string = player.data.username;
         console.log("Player Rating:", playerRating);
 
-        const playerData = JSON.stringify({ playerID, playerRating });
+        const playerData = JSON.stringify({ playerID, playerRating, playerUsername });
 
         await amqp_channel.assertQueue(MATCHMAKING_QUEUE, { durable: true });
         const message = Buffer.from(playerData);
