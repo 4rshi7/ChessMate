@@ -22,11 +22,11 @@ routes:
   # Public route for login/register
   - id: auth_route
     uris:
-      - /api/auth/*
+      - /auth/*
     upstream_id: auth_service
-    plugins:
-      proxy-rewrite:
-        regex_uri: [ "^/api/(.*)", "/$1" ]
+    # plugins:
+    #   proxy-rewrite:
+    #     regex_uri: [ "^/api/auth/(.*)", "/auth/$1" ]
 
   # Protected route — requires JWT
   - id: matchmaking_route

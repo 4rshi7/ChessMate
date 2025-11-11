@@ -16,8 +16,8 @@ export default function Game() {
   }, [status, gameId, initGame]);
 
   return (
-    <div className="min-h-screen flex justify-center items-center bg-gray-200">
-      <div className="flex w-full max-w-7xl space-x-6">
+    <div className=" flex justify-center items-center bg-gray-200">
+      <div className="flex w-full px-28 py-8 space-x-6">
         {/* Left Column */}
         <div className="w-1/4 shrink-0 bg-white shadow-md rounded-2xl">
           <GameLeftPanel />

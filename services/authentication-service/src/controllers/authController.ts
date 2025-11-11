@@ -203,7 +203,15 @@ export const completeGoogleRegistration = async (req: Request, res: Response) =>
 
     await client.query("COMMIT");
 
-    const loginToken = jwt.sign({ sub: newUser.id }, process.env.JWT_SECRET!);
+    const now = Math.floor(Date.now() / 1000);
+    const payloadForJwt = {
+  sub: newUser.id,
+  nbf: now,
+  exp: now + 7 * 24 * 60 * 60, // 1 week later
+};
+
+    const loginToken = jwt.sign(payloadForJwt, process.env.JWT_SECRET!);
+
     return res.status(201).json({ token: loginToken, user: newUser });
 
   }

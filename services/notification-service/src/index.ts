@@ -16,7 +16,8 @@ const httpServer = createServer();
 const io = new Server(httpServer, {
   cors: {
     origin: "*", // Allow all origins for simplicity. Restrict this in production!
-    methods: ["GET", "POST"]
+    methods: ["GET", "POST"],
+    credentials: true,
   }
 });
 

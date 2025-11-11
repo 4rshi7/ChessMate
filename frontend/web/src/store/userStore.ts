@@ -31,6 +31,7 @@ export const useUserStore = create<UserState>((set) => ({
     try {
       set({ loading: true, error: null });
       console.log("Fetching user info from:", `/users/${username}`);
+      // route has been changed by P guy
       const response = await api.get(`/users/${username}`, {
         headers: {
           Authorization: `Bearer ${token}`,

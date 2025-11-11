@@ -43,7 +43,7 @@ services:
       - "5001:5001"
     environment:
       - PORT=5001
-      - JWT_SECRET=supersecretvalue
+      - JWT_SECRET=${JWT_SECRET}
       - PGUSER=myuser
       - PGPASSWORD=mypassword
       - PGHOST=postgres
