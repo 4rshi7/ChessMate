@@ -6,8 +6,15 @@ import QuickStats from "../components/QuickStats";
 import RecentGames from "../components/RecentGames";
 import StartGame from "../components/StartGame";
 import { useAuthStore } from "../store/authStore";
+import {useEffect} from "react";
+import {useGameStore} from "../store/gameStore.ts";
+import {io} from "socket.io-client";
+import {connectToNotifSocket} from "../services/socket.ts";
 export default function Home(){
   console.log(useAuthStore.getState().token);
+    useEffect(()=>{
+        connectToNotifSocket("http://localhost:4002");
+    },[])
   return (
     <div className="px-12">
       <h1 className="text-4xl font-bold mt-4">Your Dashboard</h1>

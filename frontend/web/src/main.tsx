@@ -14,9 +14,9 @@ import Navbar from "./components/Navbar.tsx";
 import MainLayout from "./layouts/MainLayout.tsx";
 
 createRoot(document.getElementById("root")!).render(
-  <StrictMode>
+  // <StrictMode>
     <App/>
-  </StrictMode>,
+  // </StrictMode>,
 );
 
 initThemeMode();
