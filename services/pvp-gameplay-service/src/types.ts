@@ -10,6 +10,8 @@ export interface GameState {
     moves: string,
     whiteRating: number,
     blackRating: number,
+    whiteUsername: string,
+    blackUsername: string,
     lastMoveTimestamp?: number
 }
 

@@ -263,31 +263,31 @@ export const updateProfilesAfterGame = async (req: Request, res: Response) => {
     try {
         await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Fetch both users first to get their internal IDs
-      const userWhite = await tx.user.findUnique({
-          where: { authUserId: whitePlayer.authUserId },
-          select: { id: true } 
-      });
-      const userBlack = await tx.user.findUnique({
-          where: { authUserId: blackPlayer.authUserId },
-          select: { id: true }
-      });
+      // const userWhite = await tx.user.findUnique({
+      //     where: { authUserId: whitePlayer.authUserId },
+      //     select: { id: true }
+      // });
+      // const userBlack = await tx.user.findUnique({
+      //     where: { authUserId: blackPlayer.authUserId },
+      //     select: { id: true }
+      // });
 
-      if (!userWhite || !userBlack) {
-          throw new Error('One or both players not found in User Service.');
-      }
+      // if (!userWhite || !userBlack) {
+      //     throw new Error('One or both players not found in User Service.');
+      // }
 
       await tx.rating.update({
-        where: { userId: userWhite.id },
+        where: { userId: whitePlayer.authUserId },
         data: { [ratingField]: whitePlayer.ratingAfter }, // Use dynamic key based on timeControl
       });
       await tx.rating.update({
-        where: { userId: userBlack.id },
+        where: { userId: blackPlayer.authUserId },
         data: { [ratingField]: blackPlayer.ratingAfter },
       });
 
 
       await tx.statistics.update({
-  where: { userId: userWhite.id },
+  where: { userId: whitePlayer.authUserId },
   data: {
     totalGames: { increment: 1 },
     ...(whitePlayer.result === 'WIN' && { wins: { increment: 1 } }),
@@ -296,7 +296,7 @@ export const updateProfilesAfterGame = async (req: Request, res: Response) => {
   },
 });
      await tx.statistics.update({
-  where: { userId: userBlack.id },
+  where: { userId: blackPlayer.authUserId },
   data: {
     totalGames: { increment: 1 },
     ...(blackPlayer.result === 'WIN' && { wins: { increment: 1 } }),
@@ -308,7 +308,7 @@ export const updateProfilesAfterGame = async (req: Request, res: Response) => {
       // 5. Create Game History records for both players
       await tx.game.create({
         data: {
-          userId: userWhite.id,
+          userId: whitePlayer.authUserId,
           gameServiceId: gameServiceId,
           opponentAuthId: blackPlayer.authUserId,
           opponentUsername: blackPlayer.username,
@@ -321,7 +321,7 @@ export const updateProfilesAfterGame = async (req: Request, res: Response) => {
       });
       await tx.game.create({
         data: {
-          userId: userBlack.id,
+          userId: blackPlayer.authUserId,
           gameServiceId: gameServiceId,
           opponentAuthId: whitePlayer.authUserId,
           opponentUsername: whitePlayer.username,

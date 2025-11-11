@@ -198,8 +198,15 @@ const updateRatings = async (gameId: string, blackPlayerId: string, whitePlayerI
     // 2. Fetch current ratings for BOTH players
     // NOTE: Corrected Redis keys to fetch by *playerId*, not gameId.
     // I've assumed your stats are in a hash 'user:stats:[playerId]' with a field 'rating'.
-    const blackRatingStr = await redisClient.hGet(`game:match:${gameId}`, 'blackRating');
-    const whiteRatingStr = await redisClient.hGet(`game:match:${gameId}`, 'whiteRating');
+    const [blackRatingStr, blackUsername] = await redisClient.hmGet(
+        `game:match:${gameId}`,
+        ['blackRating', 'blackUsername']
+    );
+
+    const [whiteRatingStr, whiteUsername] = await redisClient.hmGet(
+        `game:match:${gameId}`,
+        ['whiteRating', 'whiteUsername']
+    );
 
     // 3. Parse ratings, providing a default (e.g., 1200) if user has no rating
     const blackRating = parseInt(blackRatingStr || '1200');
@@ -235,18 +242,19 @@ const updateRatings = async (gameId: string, blackPlayerId: string, whitePlayerI
         whitePlayer: {
             authUserId: whitePlayerId,
             ratingBefore: whiteRating,
-            username: "dummy", //TODO: fetch username
+            username: whiteUsername,
             ratingAfter: updatedWhiteRating,
             result: result === 'white' ? 'WIN' : result === 'black' ? 'LOSS' : 'DRAW'
         },
         blackPlayer: {
             authUserId: blackPlayerId,
             ratingBefore: blackRating,
-            username: "dummy", //TODO: fetch username
+            username: blackUsername,
             ratingAfter: updatedBlackRating,
             result: result === 'black' ? 'WIN' : result === 'white' ? 'LOSS' : 'DRAW'
         }
     };
+    console.log("Rating update data: ", ratingUpdateData);
 
     const response = await axios.post("http://user-service:5002/api/internal/game-result", ratingUpdateData).catch(err => {
         console.error("Error updating user ratings:", err);

@@ -89,7 +89,9 @@ async function startListening() {
       // Create the payload object to send to the client
       const payload = {
         gameID: eventData.gameID,
-        color: eventData.color
+        color: eventData.color,
+        opponentUsername: eventData.opponentUsername,
+        opponentRating: eventData.opponentRating
       };
 
       // Emit the event to the user's specific room

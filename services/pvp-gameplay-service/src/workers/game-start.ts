@@ -42,9 +42,11 @@ const startGameWorker = async () => {
 const initializeGameState = async (gameData: any, chessGame: Chess) => {
     const player1 = gameData.players[0].playerID;
     const player1Rating = gameData.players[0].playerRating;
+    const player1Username = gameData.players[0].playerUsername;
 
     const player2 = gameData.players[1].playerID;
     const player2Rating = gameData.players[1].playerRating;
+    const player2Username = gameData.players[1].playerUsername;
 
     const initialTiming = gameData.timeControl.initial;
     const timeIncrement = gameData.timeControl.increment;
@@ -64,6 +66,8 @@ const initializeGameState = async (gameData: any, chessGame: Chess) => {
         whiteClock: 300000,
         whiteRating: player1Rating,
         blackRating: player2Rating,
+        whiteUsername: player1Username,
+        blackUsername: player2Username,
         increment: timeIncrement,
         status: "ready",
         moves: JSON.stringify([]),
@@ -78,6 +82,10 @@ const initializeGameState = async (gameData: any, chessGame: Chess) => {
         blackPlayer: gameState.blackPlayer,
         blackClock: gameState.blackClock,
         whiteClock: gameState.whiteClock,
+        whiteRating: gameState.whiteRating,
+        blackRating: gameState.blackRating,
+        whiteUsername: gameState.whiteUsername,
+        blackUsername: gameState.blackUsername,
         increment: gameState.increment, // Ensure timeIncrement is a number
         status: gameState.status,       // This will work if status is a string
         moves: gameState.moves,
@@ -95,6 +103,8 @@ const publishGameStart = async (gameState: GameState) => {
     const player1Notification = {
         gameID: gameState.gameID,
         userID: gameState.blackPlayer,
+        opponentUsername: gameState.whiteUsername,
+        opponentRating: gameState.whiteRating,
         color: "black",
         event: "ready"
     };
@@ -102,6 +112,8 @@ const publishGameStart = async (gameState: GameState) => {
     const player2Notification = {
         gameID: gameState.gameID,
         userID: gameState.whitePlayer,
+        opponentUsername: gameState.blackUsername,
+        opponentRating: gameState.blackRating,
         color: "white",
         event: "ready"
     };
