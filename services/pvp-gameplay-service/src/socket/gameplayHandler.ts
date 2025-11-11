@@ -1,9 +1,14 @@
 import { type Server, type Socket } from 'socket.io';
 import { redisClient} from "../lib/redis-client.js";
 import {Chess} from "chess.js";
+import type {ResultType, TerminationType} from "../types.js";
+import EloRank from 'elo-rank';
+import prisma from "../db/db.js";
+import { Result, TeminationType } from '@prisma/client';
+import axios = require("axios");
 
 export const onConnection = async (io: Server, socket: Socket) => {
-    const userId = (socket as any).user.id;
+    const userId = (socket as any).user.sub;
     console.log(`User ${userId} connected with socket ${socket.id}`);
 
     socket.on('joinRoom', async (joinData: {authToken: string, gameId: string}) => {
@@ -79,10 +84,10 @@ export const onConnection = async (io: Server, socket: Socket) => {
         if(newClockValue <= 0){
             // This player ran out of time.
             const winner = (turn === 'w') ? 'black' : 'white';
-            io.to(gameId).emit('gameOver', { result: 'Timeout', winner: winner });
+            io.to(gameId).emit('gameOver', { result: 'TIMEOUT', winner: winner });
 
             // Save the game, but with the timeout result
-            // await saveCompletedGame(gameId, game.moves, winner, "Timeout");
+            await saveCompletedGame(gameId, game.blackPlayer, game.whitePlayer, game.moves, winner, "TIMEOUT");
             return;
         }
 
@@ -114,18 +119,148 @@ export const onConnection = async (io: Server, socket: Socket) => {
         });
 
         // --- HANDLE GAME OVER ---
+        //TODO: Handle resignation
         if (isGameOver) {
             console.log(`Game ${gameId} has ended.`);
 
             // Broadcast the final result
-            let result = "draw"; // Draw
+            let result: ResultType = "draw"; // Draw
             if (chess.isCheckmate()) {
                 result = turn === 'w' ? "white" : "black"; // White/Black won
             }
             io.to(gameId).emit('gameOver', { result: result });
 
-            // 2. Generate PGN and save to PostgreSQL (this can be async)
-            // saveCompletedGame(gameId, newMovesString, result);
+            //TODO: Calculate termination type properly
+            const termination_type: TerminationType = chess.isCheckmate() ? "CHECKMATE" :
+                chess.isStalemate() ? "STALEMATE" :
+                    "AGREED_DRAW";
+
+            //Generate PGN and save to PostgreSQL
+            await saveCompletedGame(gameId, game.blackPlayer, game.whitePlayer, newMovesString, result, termination_type);
         }
     });
+}
+
+const saveCompletedGame = async (gameId: string, blackPlayerId: string | undefined, whitePlayerId: string | undefined, moves: string | undefined, result: ResultType, termination_type: TerminationType) => {
+    if(!blackPlayerId || !whitePlayerId){
+        console.log("Cannot save game without both player IDs.");
+        return;
+    }
+    if(!moves){
+        console.log("Cannot save game without moves.");
+        return;
+    }
+
+
+    const pgn = generatePGN(moves);
+    await updateRatings(gameId, blackPlayerId, whitePlayerId, result);
+
+    // Save to PostgreSQL
+    console.log(`Saving completed game ${gameId} to database.`);
+    console.log({
+        gameId,
+        blackPlayerId,
+        whitePlayerId,
+        moves,
+        pgn,
+        result,
+        termination_type
+    })
+
+    const gameData = {
+        game_id: gameId,
+        black_player_id: blackPlayerId,
+        white_player_id: whitePlayerId,
+        pgn: pgn,
+        result:
+            result === "draw"
+                ? Result.DRAW
+                : result === "black"
+                    ? Result.BLACK_WIN
+                    : Result.WHITE_WIN,
+        termination_type: termination_type as TeminationType,
+        finished_at: new Date(),
+    };
+
+    try {
+        const newGame = await prisma.game.create({
+            data: gameData
+        });
+        console.log(`Game ${gameId} saved successfully with ID ${newGame.game_id}.`);
+    }catch (err) {
+        console.error("Error saving game to database:", err);
+    }
+}
+
+const updateRatings = async (gameId: string, blackPlayerId: string, whitePlayerId: string, result: ResultType) => {
+    const elo = new EloRank();
+
+    // 2. Fetch current ratings for BOTH players
+    // NOTE: Corrected Redis keys to fetch by *playerId*, not gameId.
+    // I've assumed your stats are in a hash 'user:stats:[playerId]' with a field 'rating'.
+    const blackRatingStr = await redisClient.hGet(`game:match:${gameId}`, 'blackRating');
+    const whiteRatingStr = await redisClient.hGet(`game:match:${gameId}`, 'whiteRating');
+
+    // 3. Parse ratings, providing a default (e.g., 1200) if user has no rating
+    const blackRating = parseInt(blackRatingStr || '1200');
+    const whiteRating = parseInt(whiteRatingStr || '1200');
+
+    // 4. Get expected scores for both players
+    const expectedScoreBlack = elo.getExpected(blackRating, whiteRating);
+    const expectedScoreWhite = elo.getExpected(whiteRating, blackRating);
+
+    // 5. Determine the "actual" score (1 for win, 0.5 for draw, 0 for loss) for EACH player
+    // This is the correct way to handle all three outcomes.
+    let actualScoreBlack: number;
+    let actualScoreWhite: number;
+
+    if (result === 'white') {
+        actualScoreBlack = 0;  // Black lost
+        actualScoreWhite = 1;  // White won
+    } else if (result === 'black') {
+        actualScoreBlack = 1;  // Black won
+        actualScoreWhite = 0;  // White lost
+    } else { // Assuming 'draw'
+        actualScoreBlack = 0.5; // Draw
+        actualScoreWhite = 0.5; // Draw
+    }
+
+    // 6. Calculate new (updated) ratings
+    const updatedBlackRating = Math.round(elo.updateRating(expectedScoreBlack, actualScoreBlack, blackRating));
+    const updatedWhiteRating = Math.round(elo.updateRating(expectedScoreWhite, actualScoreWhite, whiteRating));
+
+    const ratingUpdateData = {
+        gameServiceId: gameId,
+        timeControl: 'RAPID',
+        whitePlayer: {
+            authUserId: whitePlayerId,
+            ratingBefore: whiteRating,
+            username: "dummy", //TODO: fetch username
+            ratingAfter: updatedWhiteRating,
+            result: result === 'white' ? 'WIN' : result === 'black' ? 'LOSS' : 'DRAW'
+        },
+        blackPlayer: {
+            authUserId: blackPlayerId,
+            ratingBefore: blackRating,
+            username: "dummy", //TODO: fetch username
+            ratingAfter: updatedBlackRating,
+            result: result === 'black' ? 'WIN' : result === 'white' ? 'LOSS' : 'DRAW'
+        }
+    };
+
+    const response = await axios.post("http://user-service:5002/api/internal/game-result", ratingUpdateData).catch(err => {
+        console.error("Error updating user ratings:", err);
+    });
+
+}
+
+const generatePGN = (moves: string): string => {
+    const game = new Chess();
+    const movesList: string[] = JSON.parse(moves);
+
+    movesList.forEach(move => {
+        game.move(move);
+    });
+
+    return game.pgn();
 }

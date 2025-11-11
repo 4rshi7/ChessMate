@@ -80,7 +80,10 @@ services:
   # REAL-TIME (WEBSOCKET) SERVICES
   # ---------------------------------
   pvp-gameplay-service:
-    build: ./pvp-gameplay-service
+    build:
+      context: ./pvp-gameplay-service
+      args:
+        - DATABASE_URL={$DATABASE_URL_DOCKER}
     ports:
       - "4001:4001"
     environment:
@@ -88,8 +91,13 @@ services:
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
       - JWT_SECRET=${JWT_SECRET}
+      - DATABASE_URL=postgresql://myuser:mypassword@postgres:5432/gamedb?schema=public
+    env_file:
+      - ./pvp-gameplay-service/.env
     depends_on:
       rabbitmq:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
     networks:
       - chess_network
@@ -110,6 +118,8 @@ services:
   # ---------------------------------
   redis:
     image: "redis:alpine"
+    ports:
+      - "6380:6379"
     networks:
       - chess_network
 

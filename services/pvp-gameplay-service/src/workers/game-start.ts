@@ -62,6 +62,8 @@ const initializeGameState = async (gameData: any, chessGame: Chess) => {
         blackPlayer: player2,
         blackClock: 300000, // 5 minutes in milliseconds
         whiteClock: 300000,
+        whiteRating: player1Rating,
+        blackRating: player2Rating,
         increment: timeIncrement,
         status: "ready",
         moves: JSON.stringify([]),

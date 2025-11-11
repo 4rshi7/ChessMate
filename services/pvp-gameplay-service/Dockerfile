@@ -2,21 +2,31 @@
 FROM node:18-alpine AS builder
 
 WORKDIR /app
+
+RUN apk add --no-cache openssl
+
 COPY package.json package-lock.json ./
 RUN npm install
 
 COPY . .
-RUN npm run build 
-# This assumes you have a 'build' script in package.json to run 'tsc'
+# Generate Prisma client
+ARG DATABASE_URL
+ENV DATABASE_URL=${DATABASE_URL}
+RUN npx prisma generate
+RUN npm run build
 
 # --- Stage 2: Production ---
 FROM node:18-alpine
-
 WORKDIR /app
-# Copy built code and node_modules from the 'builder' stage
+
+RUN apk add --no-cache openssl
+
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/generated ./generated
 COPY package.json ./
 
-# Command to run the service
-CMD [ "node", "dist/index.js" ]
+
+# Gracefully handle non-empty DBs
+CMD ["sh", "-c", "npx prisma migrate deploy || npx prisma migrate resolve --applied $(ls prisma/migrations | head -n 1) && node dist/index.js"]
