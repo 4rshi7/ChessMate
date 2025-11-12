@@ -2,9 +2,11 @@ import React from "react";
 import { useUserStore } from "../store/userStore";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { useNavigate } from "react-router-dom";
 dayjs.extend(relativeTime);
 
 export default function RecentGames() {
+  const navigate = useNavigate();
   
   const { user, loading } = useUserStore();
   console.log(user)
@@ -32,13 +34,17 @@ export default function RecentGames() {
     LOSS: "bg-red-100 text-red-700",
     DRAW: "bg-yellow-100 text-yellow-700",
   };
+  
+  function handleClick(){
+      navigate("/games");
+  }
 
   return (
     <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 w-full">
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold text-gray-900">Recent Games</h2>
-        <button className="text-indigo-600 text-sm font-medium hover:underline">
+        <button onClick={handleClick} className="text-indigo-600 text-sm font-medium hover:underline">
           View All
         </button>
       </div>

@@ -1,5 +1,4 @@
 import { Card } from "flowbite-react";
-import Navbar from "./components/Navbar";
 import OAuthCallback from "./screens/OAuthCallback.tsx";
 import "./index.css";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
@@ -12,6 +11,7 @@ import { useAuthStore } from "./store/authStore.ts";
 import { useUserStore } from "./store/userStore.ts";
 import { useEffect } from "react";
 import Queue from "./screens/Queue.tsx";
+import GameHistoryPage from "./screens/GamesHistory.tsx";
 
 
 export default function App({children}: {children?: React.ReactNode}) {
@@ -32,6 +32,7 @@ export default function App({children}: {children?: React.ReactNode}) {
           <Route path="/home"  element={<Home></Home>}></Route>
           <Route path="/game/:gameId" element={<Game></Game>}></Route>
           <Route path="/login"  element={<Login></Login>}></Route>
+          <Route path='/games' element={<GameHistoryPage></GameHistoryPage>}></Route>
           <Route path="/oauth-callback"  element={<OAuthCallback></OAuthCallback>}></Route>
           <Route path="/usernameSetup"  element={<UserName></UserName>}></Route>
           </Route>

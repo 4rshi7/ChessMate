@@ -15,10 +15,12 @@ export default function StartGame() {
       navigate('/queue');
     }
     else{
+     
       console.log("server error");
     }
   }
   catch(error){
+     alert("you are already in a match");
     console.error(error);
   }
 

@@ -24,7 +24,7 @@ const status = useGameStore((state) => state.status);
   useEffect(()=>{
 
     if(status ==="ready" && gameId){
-      alert("navigating to game");
+      // alert("navigating to game");
       navigate(`/game/${gameId}`);
     }
   },[status, gameId])

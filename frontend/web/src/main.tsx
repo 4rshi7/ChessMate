@@ -10,7 +10,7 @@ import Login from "./screens/Login.tsx";
 import Game from "./screens/Game.tsx";
 import Home from "./screens/Home.tsx";
 import UserName from "./screens/UserName.tsx";
-import Navbar from "./components/Navbar.tsx";
+import Navbar from "./components/NavBar.tsx";
 import MainLayout from "./layouts/MainLayout.tsx";
 
 createRoot(document.getElementById("root")!).render(

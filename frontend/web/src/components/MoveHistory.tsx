@@ -19,10 +19,7 @@ export default function MoveHistory({ moves }: MoveHistoryProps) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl shadow-sm w-full max-w-sm p-4">
       {/* Title */}
-      <div className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-        <IoIosList />
-        Move History
-      </div>
+      
 
       {/* Moves List */}
       <div className="text-sm text-gray-700 divide-y divide-gray-100">

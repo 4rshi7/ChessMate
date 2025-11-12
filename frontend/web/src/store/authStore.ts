@@ -49,7 +49,7 @@ login: async () => {
     setAuthToken(undefined);
     set({ token: null});
   },
-}));
+}))
 
 
 const savedToken = localStorage.getItem("token");

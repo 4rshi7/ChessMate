@@ -6,11 +6,13 @@ import { useGameStore } from '../store/gameStore';
 export default function GameRightPanel() {
   const { gameId, status, resetGame } = useGameStore();
 
+  const resign = useGameStore((state)=>state.resign);
+
   // Placeholder for game info, replace with actual data from your store
   const gameInfo = {
-    timeControl: "15+10",
-    gameType: "Rated Rapid",
-    opening: "Ruy Lopez",
+    timeControl: "5 + 0",
+    gameType: "Rated Blitz",
+    opening: "e4 e5"
   };
 
   const handleOfferDraw = () => {
@@ -19,10 +21,11 @@ export default function GameRightPanel() {
   };
 
   const handleResign = () => {
+       console.log("resign")
     if (window.confirm("Are you sure you want to resign?")) {
       alert("You resigned!");
       // Implement actual resign logic here (e.g., send to server, end game)
-      resetGame(); // Example: reset game after resign
+      resign(); 
     }
   };
 
@@ -41,8 +44,7 @@ export default function GameRightPanel() {
         onOfferDraw={handleOfferDraw}
         onResign={handleResign}
         onLeaveGame={handleLeaveGame}
-        gameInfo={gameInfo}
-        status={status}
+        gameInfo = {gameInfo}
       />
     </div>
   );

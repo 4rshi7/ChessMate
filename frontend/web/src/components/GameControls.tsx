@@ -11,11 +11,9 @@ interface GameControlsProps {
     gameType: string;
     opening: string;
   };
-  status: GameState['status']; // Use the status type from your store
 }
 
-export default function GameControls({ onOfferDraw, onResign, onLeaveGame, gameInfo, status }: GameControlsProps) {
-  const isGameActive = status === 'active';
+export default function GameControls({ onOfferDraw, onResign, onLeaveGame, gameInfo}: GameControlsProps) {
 
   return (
     <div className=" rounded-lg p-4 flex flex-col space-y-4">
@@ -23,7 +21,6 @@ export default function GameControls({ onOfferDraw, onResign, onLeaveGame, gameI
         <button
           className="w-full py-2 rounded-md bg-gray-600 hover:bg-gray-500 text-white font-semibold flex items-center justify-center space-x-2"
           onClick={onOfferDraw}
-          disabled={!isGameActive}
         >
           {/* <FaHandshake className="text-lg" /> */} {/* Add an icon library like react-icons */}
           <span>Offer Draw</span>
@@ -31,7 +28,6 @@ export default function GameControls({ onOfferDraw, onResign, onLeaveGame, gameI
         <button
           className="w-full py-2 rounded-md bg-red-600 hover:bg-red-700 text-white font-semibold flex items-center justify-center space-x-2"
           onClick={onResign}
-          disabled={!isGameActive}
         >
           {/* <FaFlag className="text-lg" /> */}
           <span>Resign</span>
@@ -39,7 +35,6 @@ export default function GameControls({ onOfferDraw, onResign, onLeaveGame, gameI
         <button
           className="w-full py-2 rounded-md bg-yellow-600 hover:bg-yellow-700 text-white font-semibold flex items-center justify-center space-x-2"
           onClick={onLeaveGame}
-          disabled={!isGameActive}
         >
           {/* <FaSignOutAlt className="text-lg" /> */}
           <span>Leave Game</span>

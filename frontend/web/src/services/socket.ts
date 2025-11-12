@@ -3,7 +3,6 @@ import { io, Socket } from "socket.io-client";
 import { useGameStore } from "../store/gameStore";
 import { useAuthStore } from "../store/authStore";
 import DisconnectReason = Socket.DisconnectReason;
-import {on} from "socket.io-client/build/esm-debug/on";
 
 let gameSocket: Socket | null = null;
 
@@ -22,10 +21,12 @@ function onReady(payload: any){
   console.log(payload);
   const gameId = payload.gameID;
   const color = payload.color;
+  const opponentUsername = payload.opponentUsername
+  const opponentRating = parseInt(payload.opponentRating);
   // 3. Tell the store to join the room.
   console.log("game id ", gameId);
   console.log("color", color);
-  useGameStore.getState().initGame(gameId, undefined, color, undefined);
+  useGameStore.getState().initGame(gameId, undefined, color, undefined,opponentRating,opponentUsername);
 }
 
 export const connectToNotifSocket = (url: string) => {
@@ -72,7 +73,6 @@ export const connectToGameSocket = (url: string) => {
     transports: ["websocket"],
   });
 
-  console.log(gameSocket);
 
   gameSocket.on("connect", () => {
     console.log("✅ Connected to game gameSocket:", gameSocket?.id);
@@ -101,8 +101,11 @@ export const connectToGameSocket = (url: string) => {
     });
   });
 
-  gameSocket.on("gameOver", () => {
-    useGameStore.setState({ status: "finished" });
+  gameSocket.on("gameOver", (payload : {result : string, terminationType: string}) => {
+    const result = payload.result;
+    const terminationType = payload.terminationType;
+    useGameStore.getState().handleGameOver(result, terminationType);
+    
   });
 
   gameSocket.on("gameError", (err) => {

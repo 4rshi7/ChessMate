@@ -7,7 +7,7 @@ export default function MainLayout() {
       {/* Navbar always visible */}
       <Navbar />
       {/* Page content goes here */}
-      <main className="flex-1 p-4">
+      <main className="flex-1 p-4 bg-gray-200">
         <Outlet />
       </main>
     </div>

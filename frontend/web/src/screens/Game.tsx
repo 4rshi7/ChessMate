@@ -5,6 +5,7 @@ import ChessBoard from '../components/ChessBoard';
 import { useGameStore } from '../store/gameStore'; 
 import { useParams } from 'react-router-dom';
 import { connectToGameSocket, disconnectGameSocket } from '../services/socket';
+import GameOverModal from '../components/GameOverModal';
 
 export default function Game() {
   
@@ -38,11 +39,15 @@ export default function Game() {
     };
   }, [gameId]);
 
+
+
   return (
-    <div className=" flex justify-center items-center bg-gray-200">
-      <div className="flex w-full px-28 py-8 space-x-6">
+    <>
+    <div className=" relative flex justify-center items-center bg-gray-200 ">
+      <GameOverModal/>
+      <div className="flex w-full px-28 py-8 space-x-6 ">
         {/* Left Column */}
-        <div className="w-1/4 shrink-0 bg-white shadow-md rounded-2xl">
+        <div className="w-1/4 shrink-0 bg-white shadow-md rounded-2xl ">
           <GameLeftPanel />
         </div>
 
@@ -57,5 +62,6 @@ export default function Game() {
         </div>
       </div>
     </div>
+    </>
   );
 }

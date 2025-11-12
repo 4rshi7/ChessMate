@@ -10,13 +10,17 @@ import {useEffect} from "react";
 import {useGameStore} from "../store/gameStore.ts";
 import {io} from "socket.io-client";
 import {connectToNotifSocket} from "../services/socket.ts";
+import { useUserStore } from "../store/userStore.ts";
 export default function Home(){
+    const fetchUerInfo = useUserStore((state)=>state.fetchUserInfo);
   console.log(useAuthStore.getState().token);
     useEffect(()=>{
         connectToNotifSocket("http://localhost:4002");
+        fetchUerInfo();
+
     },[])
   return (
-    <div className="px-12">
+    <div className="px-12 bg-gray-200">
       <h1 className="text-4xl font-bold mt-4">Your Dashboard</h1>
       <h2 className="text-lg font-medium mt-2">Welcome back! Here's your chess progress overview.</h2>
      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6">

@@ -15,13 +15,18 @@ export type GameState = {
   moves: string[]; // Stores SAN 
   clocks: Clocks;
   status: 'ready' | 'waiting' | 'active' | 'finished';
-  playerColor: 'white' | 'black' ,
-  initGame: (gameId: string, fen?: string,playerColor?: 'white' | 'black', clocks?: Clocks) => void;
+  playerColor: 'white' | 'black' ;
+  opponentUsername: string;
+  opponentRating: number;
+  result: string;
+  terminationType:string;
+  initGame: (gameId: string, fen?: string,playerColor?: 'white' | 'black', clocks?: Clocks,opponentRating?:number,opponentUsername?:string) => void;
   joinRoom: (socket: Socket, gameId: string) => void;
   makeMove: (move: { from: string; to: string; promotion?: string }) => boolean; // true if legal false o/w
   resetGame: () => void;
   updateFromServer: (update: { fen: string; lastMove: string; clocks: Clocks }) => void;
-  handleGameOver: (result: string) => void;
+  handleGameOver: (result: string, terminationType:string) => void;
+  resign:()=> void;
 };
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -29,11 +34,16 @@ export const useGameStore = create<GameState>((set, get) => ({
   fen: START_POS,
   playerColor: "white",
   moves: [],
-  clocks: { white: 0, black: 0 },
+  clocks: { white: 300000, black: 300000 },
   status: 'waiting',
+  opponentUsername:"",
+  opponentRating: 0,
+  result:"",
+  terminationType: "",
   
-  initGame: (gameId, fen = START_POS, playerColor: 'white' | 'black' = 'white', clocks = { white: 300, black: 300 }) =>
-    set({ gameId, fen,playerColor, clocks, moves: [], status: 'ready' }),
+  
+  initGame: (gameId, fen = START_POS, playerColor: 'white' | 'black' = 'white', clocks = { white: 300000, black: 300000 }, opponentRating,opponentUsername) =>
+    set({ gameId, fen,playerColor, clocks, moves: [], status: 'ready',opponentRating,opponentUsername }),
   joinRoom: (socket, gameId) => {
     try {
       const token = useAuthStore.getState().token;
@@ -110,9 +120,14 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
   },
 
-  handleGameOver: (result) => {
-    set({ status: 'finished' });
+  handleGameOver: (result:string,terminationType:string) => {
+    set({ status: 'finished' , terminationType: terminationType , result: result});
     console.log("Game Over:", result);
   },
+
+  resign : ()=>{
+    console.log("inside gameStore's Resign")
+    sendGameSocket("resign",{});
+  }
 
 }));

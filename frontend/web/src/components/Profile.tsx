@@ -31,7 +31,7 @@ export default function Profile(){
     ratings,
   } = user;
 
-  const rating = ratings?.blitz ?? 1200; // show blitz rating or fallback
+  const rating = ratings?.rapid ?? 1200; // show blitz rating or fallback
   const joinDate = new Date(dateJoined).toLocaleString("default", {
     month: "long",
     year: "numeric",
@@ -78,7 +78,7 @@ export default function Profile(){
         <div className="flex justify-between text-gray-600">
           <span>Next Goal</span>
           <span className="font-medium text-indigo-600">
-            {rating + 100} Rating
+            {(Math.floor(rating / 100) + 1) * 100} Rating
           </span>
         </div>
       </div>
