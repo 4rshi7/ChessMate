@@ -151,7 +151,7 @@ export const onConnection = async (io: Server, socket: Socket) => {
         const result: ResultType = color === 'white' ? 'black' : 'white';
 
         io.to(gameId).emit('gameOver', { result: result, termination_type: "RESIGNATION" });
-        await updateRatings(gameId, game.blackPlayer, game.whitePlayer, result);
+        // await updateRatings(gameId, game.blackPlayer, game.whitePlayer, result);
         await saveCompletedGame(gameId, game.blackPlayer, game.whitePlayer, game.moves, result, "RESIGNATION");
 
     })
