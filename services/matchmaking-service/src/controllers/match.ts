@@ -26,7 +26,7 @@ export const enterMatchmakingQueue = async (req: Request, res: Response) => {
         }
 
         const player = await axios.get(`http://user-service:5002/api/users/id/${playerID}`);
-        const playerRating: number = player.data.ratings.blitz;
+        const playerRating: number = player.data.ratings.rapid;
         const playerUsername: string = player.data.username;
         console.log("Player Rating:", playerRating);
 
