@@ -5,7 +5,7 @@
 
 ---
 
-## 🚀 Features
+## Features
 
 * **Real-Time Gameplay:** Seamless PvP experience powered by WebSockets and optimized with Redis for ultra-low latency.
 * **Smart Matchmaking:** Queue-based pairing system to find opponents based on rating and availability.
@@ -17,7 +17,7 @@
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Domain | Technologies |
 | :--- | :--- |
@@ -30,7 +30,7 @@
 
 ---
 
-## 🏗️ Design Document
+## Design Document
 
 https://docs.google.com/document/d/1pHCMG0WR4HGZa0zPp93DYYTaapyVt2P01CNbuj8d0d4/edit?usp=sharing
 
